@@ -17,3 +17,8 @@
 15. Now the map displays on the browser
 16. Set lon/lat to have the center in the SF bay area.
 17. Create .env and transfer mapbox key to it. .gitignore.
+18. Commit and push
+19. Start building a base example 2D polygon in main.js.
+20. Polygon built and displayed using addLayer().
+21. Created another polygon of different color over SFO.
+22. Commit and push.

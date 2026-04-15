@@ -11,6 +11,9 @@ AirViz puts that structure in 3D, in the browser, on top of a real interactive m
 Example: A cut-out of the San Francisco Sectional Area Chart as of 04/14/2026:
 ![San Francisco Sectional Area Chart](/src/assets/SFO_Sectional_Cutout.png)
 
+AirViz renders that same airspace in 3D:
+![AirViz early product screenshot](/src/assets/Early_Product_Screenshot.png)
+
 ## Features
 
 - **3D airspace rendering** — FAA airspace boundaries (Class B, C, D, E, and special use) rendered as 3D volumes with accurate floor and ceiling altitudes

@@ -10,12 +10,22 @@ console.log(mapboxgl.accessToken)
 const map = new mapboxgl.Map({
     container: 'app', // container ID from index.html
     center: [-122.213473, 37.604249], // starting position
-    zoom: 9 // starting zoom
+    zoom: 9, // starting zoom
+    style: 'mapbox://styles/mapbox/light-v11'
 });
 
 // Create polygon
 map.on('load', () => {
-    map.addSource('square', {
+
+
+    // TODO: Try to make polygon in 2D from HWD_Airspace.geojson
+    map.addSource('HAYWARD', {
+        'type': 'geojson',
+        'data': "/data/HWD_Airspace.geojson"
+    })
+
+
+/*    map.addSource('square', {
         'type': 'geojson',
         'data': {
             'type': 'Feature',
@@ -61,10 +71,10 @@ map.on('load', () => {
                 ]
             }
         }
-    })
+    })*/
 
 
-    // Display polygon on map on this layer
+/*    // Display polygon on map on this layer
     map.addLayer({
         'id': 'square',
         'type': 'fill',
@@ -85,6 +95,18 @@ map.on('load', () => {
         'layout': {},
         'paint': {
             'fill-color': '#e36259',
+            'fill-opacity': 0.5
+        }
+    })*/
+
+    // Display HAYWARD data
+    map.addLayer({
+        'id': 'HAYWARD DISPLAYER',
+        'type': 'fill',
+        'source': 'HAYWARD',
+        'layout': {},
+        'paint': {
+            'fill-color': '#196980',
             'fill-opacity': 0.5
         }
     })

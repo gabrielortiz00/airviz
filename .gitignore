@@ -29,3 +29,7 @@ dist-ssr
 
 STEPLOG.md
 28DaySubscription_Effective_2026-03-19/
+
+# Local data files (large GeoJSON, external datasets, QGIS project files)
+data/
+*.qmd

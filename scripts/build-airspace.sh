@@ -87,6 +87,9 @@ echo "Output: $OUT_FILE"
 # Stops the build if a Class D overlap has no rule in scripts/airspace-rules.json.
 node "$REPO_ROOT/scripts/resolve-overlaps.js" "$RAW_FILE" "$OUT_FILE"
 
+# Test known points from charts and legal descriptions (scripts/airspace-checks.json).
+node "$REPO_ROOT/scripts/check-airspace.js" "$OUT_FILE"
+
 # Record which cycle the data is from, so the site can show it.
 printf '{\n    "effective": "%s"\n}\n' "$CYCLE_DATE" > "$OUT_DIR/cycle.json"
 

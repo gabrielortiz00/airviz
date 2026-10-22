@@ -1,0 +1,161 @@
+{
+    "about": "Known points in space and the airspace a pilot should be in there, taken from charts and legal descriptions (never from our own data). scripts/check-airspace.js tests the built data against these every build. Points are airport reference points from the NASR APT_BASE.csv (Oct 29, 2026 cycle) unless noted. Altitudes are feet MSL. 'expect' is one of: { ident, class } (in exactly that airspace), { notIdent } (not in that airport's airspace), { none: true } (in no B/C/D airspace).",
+    "checks": [
+        {
+            "name": "SFO surface area",
+            "point": [-122.37541666, 37.61880555], "altitude": 500,
+            "expect": { "ident": "SFO", "class": "B" },
+            "source": "SF sectional: 100/SFC over SFO"
+        },
+        {
+            "name": "SFO Class B ceiling is included",
+            "point": [-122.37541666, 37.61880555], "altitude": 10000,
+            "expect": { "ident": "SFO", "class": "B" },
+            "source": "SF sectional: 100/SFC (Class B ceilings include the top altitude)"
+        },
+        {
+            "name": "Above SFO Class B",
+            "point": [-122.37541666, 37.61880555], "altitude": 10100,
+            "expect": { "none": true },
+            "source": "SF sectional: Class B tops out at 10,000"
+        },
+        {
+            "name": "Oakland surface area",
+            "point": [-122.22115055, 37.72126138], "altitude": 1000,
+            "expect": { "ident": "OAK", "class": "C" },
+            "source": "SF sectional: Oakland Class C surface area around OAK"
+        },
+        {
+            "name": "San Jose surface area",
+            "point": [-121.92862055, 37.36299472], "altitude": 1000,
+            "expect": { "ident": "SJC", "class": "C" },
+            "source": "SF sectional: 40/SFC over SJC"
+        },
+        {
+            "name": "San Jose Class C ceiling is included",
+            "point": [-121.92862055, 37.36299472], "altitude": 4000,
+            "expect": { "ident": "SJC", "class": "C" },
+            "source": "SF sectional: 40/SFC over SJC"
+        },
+        {
+            "name": "Above San Jose Class C",
+            "point": [-121.92862055, 37.36299472], "altitude": 4100,
+            "expect": { "notIdent": "SJC" },
+            "source": "SF sectional: 40/SFC over SJC"
+        },
+        {
+            "name": "Hayward surface area",
+            "point": [-122.12173888, 37.65893166], "altitude": 1000,
+            "expect": { "ident": "HWD", "class": "D" },
+            "source": "SF sectional: [-15] at HWD"
+        },
+        {
+            "name": "Hayward just below its ceiling",
+            "point": [-122.12173888, 37.65893166], "altitude": 1499,
+            "expect": { "ident": "HWD", "class": "D" },
+            "source": "SF sectional: [-15] at HWD"
+        },
+        {
+            "name": "Hayward ceiling is not included",
+            "point": [-122.12173888, 37.65893166], "altitude": 1500,
+            "expect": { "notIdent": "HWD" },
+            "source": "SF sectional: [-15] at HWD means up to but not including 1,500"
+        },
+        {
+            "name": "San Carlos surface area",
+            "point": [-122.24953111, 37.51186111], "altitude": 1000,
+            "expect": { "ident": "SQL", "class": "D" },
+            "source": "SF sectional: [-15] at SQL"
+        },
+        {
+            "name": "San Carlos northeast sector just below its ceiling",
+            "point": [-122.2275, 37.5264], "altitude": 1499,
+            "expect": { "ident": "SQL", "class": "D" },
+            "source": "SF sectional: [-15] northeast of SQL. Point is the middle of that sector (the airport itself sits 330 m inside the [20] sector)."
+        },
+        {
+            "name": "San Carlos northeast sector ceiling is not included",
+            "point": [-122.2275, 37.5264], "altitude": 1500,
+            "expect": { "notIdent": "SQL" },
+            "source": "SF sectional: [-15] northeast of SQL means up to but not including 1,500"
+        },
+        {
+            "name": "San Carlos southwest sector ceiling is included",
+            "point": [-122.267, 37.4979], "altitude": 2000,
+            "expect": { "ident": "SQL", "class": "D" },
+            "source": "SF sectional: [20] southwest of SQL. Point is the middle of that sector."
+        },
+        {
+            "name": "Above San Carlos southwest sector",
+            "point": [-122.267, 37.4979], "altitude": 2100,
+            "expect": { "notIdent": "SQL" },
+            "source": "SF sectional: [20] southwest of SQL"
+        },
+        {
+            "name": "Livermore surface area (field elevation 400)",
+            "point": [-121.82036111, 37.69338888], "altitude": 1000,
+            "expect": { "ident": "LVK", "class": "D" },
+            "source": "SF sectional: [29] at LVK"
+        },
+        {
+            "name": "Livermore ceiling is included",
+            "point": [-121.82036111, 37.69338888], "altitude": 2900,
+            "expect": { "ident": "LVK", "class": "D" },
+            "source": "SF sectional: [29] at LVK"
+        },
+        {
+            "name": "Above Livermore Class D",
+            "point": [-121.82036111, 37.69338888], "altitude": 3000,
+            "expect": { "notIdent": "LVK" },
+            "source": "SF sectional: [29] at LVK"
+        },
+        {
+            "name": "Concord surface area",
+            "point": [-122.05690222, 37.98965666], "altitude": 1000,
+            "expect": { "ident": "CCR", "class": "D" },
+            "source": "SF sectional: [25] at CCR"
+        },
+        {
+            "name": "Concord ceiling is included",
+            "point": [-122.05690222, 37.98965666], "altitude": 2500,
+            "expect": { "ident": "CCR", "class": "D" },
+            "source": "SF sectional: [25] at CCR"
+        },
+        {
+            "name": "Above Concord Class D",
+            "point": [-122.05690222, 37.98965666], "altitude": 2600,
+            "expect": { "notIdent": "CCR" },
+            "source": "SF sectional: [25] at CCR"
+        },
+        {
+            "name": "Palo Alto surface area",
+            "point": [-122.11504666, 37.46112138], "altitude": 1000,
+            "expect": { "ident": "PAO", "class": "D" },
+            "source": "SF sectional: Palo Alto Class D around PAO"
+        },
+        {
+            "name": "Moffett surface area",
+            "point": [-122.04912916, 37.41614388], "altitude": 1000,
+            "expect": { "ident": "NUQ", "class": "D" },
+            "source": "SF sectional: [-25] at NUQ"
+        },
+        {
+            "name": "Reid-Hillview surface area",
+            "point": [-121.81980555, 37.33286111], "altitude": 1000,
+            "expect": { "ident": "RHV", "class": "D" },
+            "source": "SF sectional: Reid-Hillview Class D around RHV"
+        },
+        {
+            "name": "Moffett/Palo Alto overlap, low: Palo Alto owns it",
+            "point": [-122.10429, 37.45378], "altitude": 1000,
+            "expect": { "ident": "PAO", "class": "D" },
+            "source": "Point 4.0 statute miles from Moffett toward Palo Alto, inside both. Moffett Class D legal description excludes the Palo Alto Class D airspace area (Federal Register doc 98-11856)."
+        },
+        {
+            "name": "Moffett/Palo Alto overlap, above Palo Alto's ceiling: Moffett",
+            "point": [-122.10429, 37.45378], "altitude": 2200,
+            "expect": { "ident": "NUQ", "class": "D" },
+            "source": "Same point. Palo Alto's Class D tops out at 2,000 or below, Moffett's goes up to but not including 2,500 (Federal Register doc 98-11856)."
+        }
+    ]
+}

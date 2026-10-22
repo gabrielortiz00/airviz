@@ -1,33 +1,20 @@
-import mapboxgl from "mapbox-gl";
-import 'mapbox-gl/dist/mapbox-gl.css'
+import * as maplibregl from "maplibre-gl";
+import 'maplibre-gl/dist/maplibre-gl.css'
+import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
+
+// Vite bundles maplibre-gl, so point it at its worker file explicitly.
+maplibregl.setWorkerUrl(workerUrl);
 
 
-
-mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_PUBLIC_KEY;
-
-
-const map = new mapboxgl.Map({
+const map = new maplibregl.Map({
     container: 'app', // container ID from index.html
     center: [-122.213473, 37.604249], // starting position
     zoom: 9, // starting zoom
-    style: 'mapbox://styles/mapbox/light-v11'
+    style: 'https://tiles.openfreemap.org/styles/positron'
 });
 
 // Create polygon
 map.on('load', () => {
-
-    // Terrain data source.
-    map.addSource('mapbox-dem', {
-        'type': 'raster-dem',
-        'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
-        'tileSize': 512,
-        'maxzoom': 14
-    });
-
-/*    map.setTerrain({
-        'source': 'mapbox-dem',
-        'exaggeration': 1
-    });*/
 
     // Boston airspace data source.
     map.addSource('BOSTON', {

@@ -30,7 +30,13 @@ WHERE="CLASS IN ('B','C','D')"
 if [[ $# -ge 1 ]]; then
     NASR_DIR="$1"
 else
-    NASR_DIR="$(ls -d "$REPO_ROOT"/28DaySubscription_Effective_*/ 2>/dev/null | sort | tail -n 1)"
+    # "|| true": with no folders, ls fails, which would otherwise end the script silently.
+    NASR_DIR="$(ls -d "$REPO_ROOT"/28DaySubscription_Effective_*/ 2>/dev/null | sort | tail -n 1 || true)"
+    if [[ -z "$NASR_DIR" ]]; then
+        echo "No NASR cycle folder found in $REPO_ROOT." >&2
+        echo "Download one first, e.g.: scripts/fetch-nasr.sh $(node "$REPO_ROOT/scripts/nasr-cycle.js")" >&2
+        exit 1
+    fi
 fi
 NASR_DIR="${NASR_DIR%/}"
 SHAPEFILE="$NASR_DIR/Additional_Data/Shape_Files/Class_Airspace.shp"

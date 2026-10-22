@@ -127,6 +127,11 @@ node "$REPO_ROOT/scripts/check-airspace.js" "$OUT_FILE"
 # The public-use airport list for the search box.
 node "$REPO_ROOT/scripts/build-airports.js" "$APT_CSV" "$OUT_DIR/airports.json"
 
+# Mode C veil: 30 NM around the airports in scripts/mode-c-veil.json (14 CFR 91 Appendix D).
+# Stops the build if the regulation's list changed since the file was written.
+node "$REPO_ROOT/scripts/check-mode-c-veil.js"
+node "$REPO_ROOT/scripts/build-mode-c-veil.js" "$APT_CSV" "$OUT_DIR/mode-c-veil.geojson"
+
 # Record which cycle the data is from, so the site can show it.
 printf '{\n    "effective": "%s"\n}\n' "$CYCLE_DATE" > "$OUT_DIR/cycle.json"
 

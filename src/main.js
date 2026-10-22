@@ -10,6 +10,13 @@ const FEET_TO_METERS = 0.3048;
 // Built from the FAA NASR Class_Airspace shapefile by scripts/build-airspace.sh.
 const AIRSPACE_URL = '/data/airspace.geojson';
 
+// Built by scripts/build-mode-c-veil.js: 30 NM around the airports in 14 CFR 91 Appendix D.
+// Drawn as a line on the ground, like the sectional.
+const VEIL_URL = '/data/mode-c-veil.geojson';
+
+// Sectional charts draw the veil as a thin magenta line.
+const VEIL_COLOR = 'rgb(176, 48, 110)';
+
 // Colors loosely follow sectional chart conventions: B blue, C magenta.
 // D is dashed blue on a sectional; cyan keeps it distinct from B in 3D.
 const CLASS_COLORS = {
@@ -202,7 +209,26 @@ map.on('load', async () => {
         }
     });
 
-    allVolumes = toVolumes(await (await fetch(AIRSPACE_URL)).json());
+    const [airspace, veil] = await Promise.all([
+        fetch(AIRSPACE_URL).then(response => response.json()),
+        fetch(VEIL_URL).then(response => response.json())
+    ]);
+
+    // The veil's edge on the ground. MapLibre drapes lines over the terrain.
+    map.addSource('mode-c-veil', { type: 'geojson', data: veil });
+    map.addLayer({
+        id: 'mode-c-veil-ground',
+        type: 'line',
+        source: 'mode-c-veil',
+        paint: {
+            'line-color': VEIL_COLOR,
+            'line-width': 1.5,
+            'line-opacity': 0.8
+        }
+    });
+    setVeilVisible(showVeil);
+
+    allVolumes = toVolumes(airspace);
     drawAirspace();
 
 });
@@ -211,6 +237,7 @@ let allVolumes = [];
 
 // Classes checked in the panel's Airspace section.
 const visibleClasses = new Set(['B', 'C', 'D']);
+let showVeil = true;
 
 function drawAirspace() {
     const volumeShape = {
@@ -243,8 +270,20 @@ function drawAirspace() {
     });
 }
 
+function setVeilVisible(visible) {
+    showVeil = visible;
+    // The ground line only exists once the map has loaded; the load handler applies it then.
+    if (map.getLayer('mode-c-veil-ground')) {
+        map.setLayoutProperty('mode-c-veil-ground', 'visibility', visible ? 'visible' : 'none');
+    }
+}
+
+document.getElementById('toggle-veil').addEventListener('change', event => {
+    setVeilVisible(event.target.checked);
+});
+
 // Class checkboxes. The swatches use the same colors as the map, at full opacity.
-for (const input of document.querySelectorAll('.class-toggle input')) {
+for (const input of document.querySelectorAll('.class-toggle input[data-class]')) {
     const airspaceClass = input.dataset.class;
     const [r, g, b] = CLASS_COLORS[airspaceClass];
     input.parentElement.querySelector('.swatch').style.background = `rgb(${r}, ${g}, ${b})`;

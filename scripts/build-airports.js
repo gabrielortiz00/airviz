@@ -12,6 +12,7 @@
 // Usage: node scripts/build-airports.js <APT_BASE.csv> <airports.json>
 
 import fs from 'node:fs';
+import { readNasrCsv } from './nasr-csv.js';
 
 // A sanity check: there are about 5,000 public-use US airports. Far fewer means a bad file.
 const MIN_AIRPORTS = 4000;
@@ -22,64 +23,16 @@ if (!inputPath || !outputPath) {
     process.exit(1);
 }
 
-// The FAA's CSV quotes every field: "a","b,with comma","c ""quoted"""
-function parseLine(line) {
-    const fields = [];
-    let field = '';
-    let inQuotes = false;
-    for (let i = 0; i < line.length; i++) {
-        const char = line[i];
-        if (inQuotes) {
-            if (char === '"' && line[i + 1] === '"') {
-                field += '"';
-                i++;
-            } else if (char === '"') {
-                inQuotes = false;
-            } else {
-                field += char;
-            }
-        } else if (char === '"') {
-            inQuotes = true;
-        } else if (char === ',') {
-            fields.push(field);
-            field = '';
-        } else {
-            field += char;
-        }
-    }
-    fields.push(field);
-    return fields;
-}
-
-const lines = fs.readFileSync(inputPath, 'utf8').split(/\r?\n/).filter(line => line.length > 0);
-const header = parseLine(lines[0]);
-const column = name => {
-    const index = header.indexOf(name);
-    if (index < 0) {
-        console.error(`APT_BASE.csv has no ${name} column.`);
-        process.exit(1);
-    }
-    return index;
-};
-
-const ID = column('ARPT_ID');
-const ICAO = column('ICAO_ID');
-const NAME = column('ARPT_NAME');
-const CITY = column('CITY');
-const STATE = column('STATE_CODE');
-const LAT = column('LAT_DECIMAL');
-const LON = column('LONG_DECIMAL');
-const TYPE = column('SITE_TYPE_CODE');
-const USE = column('FACILITY_USE_CODE');
-const STATUS = column('ARPT_STATUS');
-const COUNTRY = column('COUNTRY_CODE');
-const TOWER = column('TWR_TYPE_CODE');
-const PART_139 = column('FAR_139_TYPE_CODE');
+const rows = readNasrCsv(inputPath, [
+    'ARPT_ID', 'ICAO_ID', 'ARPT_NAME', 'CITY', 'STATE_CODE', 'LAT_DECIMAL', 'LONG_DECIMAL',
+    'SITE_TYPE_CODE', 'FACILITY_USE_CODE', 'ARPT_STATUS', 'COUNTRY_CODE', 'TWR_TYPE_CODE',
+    'FAR_139_TYPE_CODE'
+]);
 
 // e.g. TWR_TYPE_CODE "ATCT" and FAR_139_TYPE_CODE "I E" (Class I, index E) for JFK.
 function importance(row) {
-    let score = row[TOWER].startsWith('ATCT') ? 1 : 0;
-    const [part139Class, index] = row[PART_139].split(' ');
+    let score = row.TWR_TYPE_CODE.startsWith('ATCT') ? 1 : 0;
+    const [part139Class, index] = row.FAR_139_TYPE_CODE.split(' ');
     if (part139Class) {
         score += 1;
         if (part139Class === 'I') {
@@ -90,20 +43,19 @@ function importance(row) {
 }
 
 const airports = [];
-for (const line of lines.slice(1)) {
-    const row = parseLine(line);
-    if (row[STATUS] !== 'O' || row[USE] !== 'PU' || row[COUNTRY] !== 'US') {
+for (const row of rows) {
+    if (row.ARPT_STATUS !== 'O' || row.FACILITY_USE_CODE !== 'PU' || row.COUNTRY_CODE !== 'US') {
         continue;
     }
     airports.push([
-        row[ID],
-        row[ICAO],
-        row[NAME],
-        row[CITY],
-        row[STATE],
-        Math.round(Number(row[LON]) * 1e5) / 1e5,
-        Math.round(Number(row[LAT]) * 1e5) / 1e5,
-        row[TYPE],
+        row.ARPT_ID,
+        row.ICAO_ID,
+        row.ARPT_NAME,
+        row.CITY,
+        row.STATE_CODE,
+        Math.round(Number(row.LONG_DECIMAL) * 1e5) / 1e5,
+        Math.round(Number(row.LAT_DECIMAL) * 1e5) / 1e5,
+        row.SITE_TYPE_CODE,
         importance(row)
     ]);
 }

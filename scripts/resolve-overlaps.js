@@ -215,6 +215,14 @@ if (unresolved.length > 0) {
     process.exit(1);
 }
 
+// Floors like "300 SFC" follow the terrain, which a flat floor can't show yet, so the site
+// draws them as if they were MSL.
+for (const v of volumes) {
+    if (v.lowerCode === 'SFC' && v.floor !== 0) {
+        console.warn(`Drawn as MSL: ${v.name} floor is ${v.floor} SFC (above ground level).`);
+    }
+}
+
 // Warn about rules that are inferred rather than read from the legal text.
 for (const rule of rules) {
     if (rule.verified === false && usedRules.has(rule)) {

@@ -1,25 +1,21 @@
-import maplibregl from "maplibre-gl";
-import 'maplibre-gl/dist/maplibre-gl.css'
+import maplibregl from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import { MapboxOverlay } from '@deck.gl/mapbox';
 import { SolidPolygonLayer } from '@deck.gl/layers';
-import './style.css'
-
+import './style.css';
 
 const FEET_TO_METERS = 0.3048;
 
 // Built from the FAA NASR Class_Airspace shapefile by scripts/build-airspace.sh.
-const AIRSPACE_FILES = [
-    '/data/airspace.geojson'
-];
+const AIRSPACE_URL = '/data/airspace.geojson';
 
 // Colors loosely follow sectional chart conventions: B blue, C magenta.
 // D is dashed blue on a sectional; cyan keeps it distinct from B in 3D.
 const CLASS_COLORS = {
-    'B': [20, 80, 170, 100],
-    'C': [176, 30, 120, 90],
-    'D': [0, 165, 200, 70]
+    B: [20, 80, 170, 100],
+    C: [176, 30, 120, 90],
+    D: [0, 165, 200, 70]
 };
-
 
 const map = new maplibregl.Map({
     container: 'app', // container ID from index.html
@@ -62,37 +58,19 @@ const deckOverlay = new MapboxOverlay({
 });
 map.addControl(deckOverlay);
 
-
-// Floor in meters MSL. SFC floors start at sea level so the terrain hides the part below ground.
-function floorMeters(props) {
-    if (props.LOWER_CODE === 'SFC') {
-        if (Number(props.LOWER_VAL) !== 0) {
-            // Floors like "300 SFC" follow the terrain, which a flat floor can't show yet.
-            console.warn(`Treating ${props.LOWER_VAL} SFC floor as MSL: ${props.NAME}`);
-            return Number(props.LOWER_VAL) * FEET_TO_METERS;
-        }
-        return 0;
-    }
-    return Number(props.LOWER_VAL) * FEET_TO_METERS;
-}
-
 // Turn geojson features into one volume per polygon, with the floor as the z of every point.
+// SFC floors (0) start at sea level so the terrain hides the part below ground. The few
+// floors like "300 SFC" are drawn as MSL; the build log lists them.
 function toVolumes(geojson) {
     const volumes = [];
 
     for (const feature of geojson.features) {
         const props = feature.properties;
-        if (!(props.CLASS in CLASS_COLORS)) {
-            continue; // Class E is not drawn for now
-        }
-
-        const floor = floorMeters(props);
+        const floor = Number(props.LOWER_VAL) * FEET_TO_METERS;
         const ceiling = Number(props.UPPER_VAL) * FEET_TO_METERS;
-        const polygons = feature.geometry.type === 'MultiPolygon'
-            ? feature.geometry.coordinates
-            : [feature.geometry.coordinates];
 
-        for (const rings of polygons) {
+        // The build always writes MultiPolygons.
+        for (const rings of feature.geometry.coordinates) {
             volumes.push({
                 name: props.NAME,
                 airspaceClass: props.CLASS,
@@ -163,41 +141,35 @@ document.getElementById('report-link').addEventListener('click', event => {
     event.currentTarget.href = `https://github.com/gabrielortiz00/airviz/issues/new?${params}`;
 });
 
-async function loadAirspace(urls) {
-    const files = await Promise.all(urls.map(url => fetch(url).then(response => response.json())));
-    return files.flatMap(toVolumes);
-}
-
-
 map.on('load', async () => {
 
     // Terrain data source (AWS Terrain Tiles, terrarium encoding).
     map.addSource('terrain-dem', {
-        'type': 'raster-dem',
-        'tiles': ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
-        'encoding': 'terrarium',
-        'tileSize': 256,
-        'maxzoom': 15,
-        'attribution': 'Terrain: Mapzen, AWS Terrain Tiles'
+        type: 'raster-dem',
+        tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
+        encoding: 'terrarium',
+        tileSize: 256,
+        maxzoom: 15,
+        attribution: 'Terrain: Mapzen, AWS Terrain Tiles'
     });
 
     // Exaggeration must stay at 1 so altitudes are true to scale.
     map.setTerrain({
-        'source': 'terrain-dem',
-        'exaggeration': 1
+        source: 'terrain-dem',
+        exaggeration: 1
     });
 
     // Hillshade so the terrain is visible on the flat basemap.
     map.addLayer({
-        'id': 'hillshade',
-        'type': 'hillshade',
-        'source': 'terrain-dem',
-        'paint': {
+        id: 'hillshade',
+        type: 'hillshade',
+        source: 'terrain-dem',
+        paint: {
             'hillshade-exaggeration': 0.3
         }
     });
 
-    const volumes = await loadAirspace(AIRSPACE_FILES);
+    const volumes = toVolumes(await (await fetch(AIRSPACE_URL)).json());
 
     const volumeShape = {
         data: volumes,

@@ -57,20 +57,24 @@ Then open http://localhost:5173. The airspace data is already in `public/data/`,
 
 ### Updating the airspace data
 
-1. Download the latest 28-day subscription from the [NASR page](https://www.faa.gov/air_traffic/flight_info/aeronav/aero_data/NASR_Subscription/) and unzip it into the repo root. Keep the FAA's folder name, like `28DaySubscription_Effective_2026-10-29`. These folders are gitignored.
-2. Install GDAL (`brew install gdal`), or have QGIS installed. The script uses the copy of GDAL that comes with QGIS if it can't find one.
+This happens on its own. A GitHub Actions workflow (`.github/workflows/update-airspace.yml`) runs every morning. On the day a new NASR cycle takes effect, it downloads the Class Airspace shapefile from the FAA, runs the build with all its checks, and commits the new data if everything passes. Vercel deploys that commit. If anything fails, it opens a GitHub issue instead and the site keeps the previous cycle.
+
+To do it by hand:
+
+1. Install GDAL (`brew install gdal`), or have QGIS installed. The script uses the copy of GDAL that comes with QGIS if it can't find one.
+2. Download a cycle with `scripts/fetch-nasr.sh 2026-10-29`. It saves only the shapefile, in a gitignored `28DaySubscription_Effective_2026-10-29` folder. Unzipping the full subscription from the [NASR page](https://www.faa.gov/air_traffic/flight_info/aeronav/aero_data/NASR_Subscription/) into the repo root works too.
 3. Run `npm run build:airspace`.
 
-The script uses the newest cycle folder, writes `public/data/airspace.geojson` and `public/data/cycle.json`, and runs the checks.
+The build uses the newest cycle folder, writes `public/data/airspace.geojson` and `public/data/cycle.json`, and runs the checks. `node scripts/nasr-cycle.js` prints the cycle in effect today.
 
 ## Status
 
-Live for the whole US. For now I update the data by hand each cycle.
+Live for the whole US, and the data updates itself every NASR cycle.
 
 ## Roadmap
 
 - [x] Oakland / San Francisco terminal area
-- [ ] Automatic data updates every NASR cycle
+- [x] Automatic data updates every NASR cycle
 - [ ] Column view: click a point and see every layer of airspace from the ground up
 - [ ] Altitude query: enter a position and altitude, get back the airspace you're in
 - [ ] Class E and special use airspace

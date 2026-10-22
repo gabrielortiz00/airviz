@@ -1,0 +1,115 @@
+name: Update airspace data
+
+# Keeps the site on the NASR cycle in effect. Once a day, after new cycles take effect at
+# 0901 UTC, it builds the current cycle if the site doesn't have it yet. The new data is only
+# committed if the overlap rules and airspace checks pass; Vercel then deploys the commit.
+# If anything fails, it opens an issue and the site keeps the previous cycle.
+
+on:
+  schedule:
+    - cron: '20 9 * * *'
+  workflow_dispatch:
+    inputs:
+      cycle:
+        description: 'Cycle to build (YYYY-MM-DD). Leave empty for the cycle in effect.'
+        required: false
+        default: ''
+      force:
+        description: 'Rebuild even if the site already has this cycle.'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: update-airspace
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Decide which cycle to build
+        id: cycle
+        env:
+          INPUT_CYCLE: ${{ inputs.cycle }}
+          FORCE: ${{ inputs.force }}
+        run: |
+          target="${INPUT_CYCLE:-$(node scripts/nasr-cycle.js)}"
+          current="$(node -p "require('./public/data/cycle.json').effective")"
+          echo "target=$target" >> "$GITHUB_OUTPUT"
+          if [[ "$FORCE" != "true" && ! "$target" > "$current" ]]; then
+            echo "The site already has the $current cycle (cycle in effect: $target). Nothing to do."
+            echo "build=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Updating from the $current cycle to $target."
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install dependencies and GDAL
+        if: steps.cycle.outputs.build == 'true'
+        run: |
+          npm ci
+          sudo apt-get update
+          sudo apt-get install -y gdal-bin
+          ogr2ogr --version
+
+      - name: Download the cycle from the FAA
+        if: steps.cycle.outputs.build == 'true'
+        env:
+          CYCLE: ${{ steps.cycle.outputs.target }}
+        run: scripts/fetch-nasr.sh "$CYCLE" "$RUNNER_TEMP/nasr"
+
+      - name: Build and check the airspace
+        if: steps.cycle.outputs.build == 'true'
+        env:
+          CYCLE: ${{ steps.cycle.outputs.target }}
+        run: npm run build:airspace -- "$RUNNER_TEMP/nasr/28DaySubscription_Effective_$CYCLE"
+
+      - name: Commit the new data
+        if: steps.cycle.outputs.build == 'true'
+        env:
+          CYCLE: ${{ steps.cycle.outputs.target }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/data
+          if git diff --cached --quiet; then
+            echo "The data didn't change."
+            exit 0
+          fi
+          git commit -m "Update airspace data to the $CYCLE NASR cycle."
+          git push
+
+      - name: Open an issue if the update failed
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CYCLE: ${{ steps.cycle.outputs.target }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title="Airspace update failed for the ${CYCLE:-unknown} cycle"
+          existing="$(gh issue list --state open --search "\"$title\" in:title" --json number --jq '.[0].number // empty')"
+          if [[ -n "$existing" ]]; then
+            gh issue comment "$existing" --body "Failed again: $RUN_URL"
+          else
+            gh issue create --title "$title" --body "The automatic airspace update failed, so the live site still shows the previous cycle.
+
+          Run log: $RUN_URL
+
+          Usual causes:
+          - The FAA hasn't posted the cycle yet, or the download failed. The next daily run tries again.
+          - A new Class D overlap needs a rule in \`scripts/airspace-rules.json\`.
+          - An airspace check in \`scripts/airspace-checks.json\` failed, meaning the new data differs from a chart or legal description.
+
+          After fixing it, run the \"Update airspace data\" workflow again from the Actions tab."
+          fi

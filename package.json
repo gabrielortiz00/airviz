@@ -1,8 +1,12 @@
 {
   "name": "airviz",
   "version": "0.0.0",
+  "description": "Interactive 3D visualization of US airspace from FAA NASR data.",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",

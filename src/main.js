@@ -16,6 +16,32 @@ const map = new maplibregl.Map({
 // Create polygon
 map.on('load', () => {
 
+    // Terrain data source (AWS Terrain Tiles, terrarium encoding).
+    map.addSource('terrain-dem', {
+        'type': 'raster-dem',
+        'tiles': ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
+        'encoding': 'terrarium',
+        'tileSize': 256,
+        'maxzoom': 15,
+        'attribution': 'Terrain: Mapzen, AWS Terrain Tiles'
+    });
+
+    // Exaggeration must stay at 1 so altitudes are true to scale.
+    map.setTerrain({
+        'source': 'terrain-dem',
+        'exaggeration': 1
+    });
+
+    // Hillshade so the terrain is visible on the flat basemap.
+    map.addLayer({
+        'id': 'hillshade',
+        'type': 'hillshade',
+        'source': 'terrain-dem',
+        'paint': {
+            'hillshade-exaggeration': 0.3
+        }
+    });
+
     // Boston airspace data source.
     map.addSource('BOSTON', {
         'type': 'geojson',

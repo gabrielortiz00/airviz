@@ -1,20 +1,99 @@
-import * as maplibregl from "maplibre-gl";
+import maplibregl from "maplibre-gl";
 import 'maplibre-gl/dist/maplibre-gl.css'
-import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
+import { MapboxOverlay } from '@deck.gl/mapbox';
+import { SolidPolygonLayer } from '@deck.gl/layers';
 
-// Vite bundles maplibre-gl, so point it at its worker file explicitly.
-maplibregl.setWorkerUrl(workerUrl);
+
+const FEET_TO_METERS = 0.3048;
+
+// Airspace files exported from the FAA NASR Class_Airspace shapefile.
+const AIRSPACE_FILES = [
+    '/data/SFO_Airspace.geojson', // San Francisco
+    '/data/OAK_Airspace.geojson', // Oakland
+    '/data/SJC_Airspace.geojson', // San Jose
+    '/data/HWD_Airspace.geojson', // Hayward
+    '/data/RHV_Airspace.geojson', // Reid-Hillview
+    '/data/LVK_Airspace.geojson', // Livermore
+    '/data/PAO_Airspace.geojson', // Palo Alto
+    '/data/SQL_Airspace.geojson', // San Carlos
+    '/data/CCR_Airspace.geojson', // Concord
+    '/data/APC_Airspace.geojson', // Napa
+    '/data/MOD_Airspace.geojson', // Modesto
+    '/data/MRY_Airspace.geojson', // Monterey
+    '/data/BOS_Airspace.geojson'  // Boston
+];
+
+// Colors loosely follow sectional chart conventions: B blue, C magenta, D lighter blue.
+const CLASS_COLORS = {
+    'B': [0, 82, 204, 90],
+    'C': [173, 31, 140, 90],
+    'D': [70, 140, 230, 90]
+};
 
 
 const map = new maplibregl.Map({
     container: 'app', // container ID from index.html
     center: [-122.213473, 37.604249], // starting position
     zoom: 9, // starting zoom
+    maxPitch: 85, // allow looking at airspace shelves from the side
     style: 'https://tiles.openfreemap.org/styles/positron'
 });
 
-// Create polygon
-map.on('load', () => {
+// deck.gl draws the airspace inside the MapLibre map, so it shares the camera and terrain.
+const deckOverlay = new MapboxOverlay({ interleaved: true, layers: [] });
+map.addControl(deckOverlay);
+
+
+// Floor in meters MSL. SFC floors start at sea level so the terrain hides the part below ground.
+function floorMeters(props) {
+    if (props.LOWER_CODE === 'SFC') {
+        if (Number(props.LOWER_VAL) !== 0) {
+            // Floors like "300 SFC" follow the terrain, which a flat floor can't show yet.
+            console.warn(`Treating ${props.LOWER_VAL} SFC floor as MSL: ${props.NAME}`);
+            return Number(props.LOWER_VAL) * FEET_TO_METERS;
+        }
+        return 0;
+    }
+    return Number(props.LOWER_VAL) * FEET_TO_METERS;
+}
+
+// Turn geojson features into one volume per polygon, with the floor as the z of every point.
+function toVolumes(geojson) {
+    const volumes = [];
+
+    for (const feature of geojson.features) {
+        const props = feature.properties;
+        if (!(props.CLASS in CLASS_COLORS)) {
+            continue; // Class E is not drawn for now
+        }
+
+        const floor = floorMeters(props);
+        const ceiling = Number(props.UPPER_VAL) * FEET_TO_METERS;
+        const polygons = feature.geometry.type === 'MultiPolygon'
+            ? feature.geometry.coordinates
+            : [feature.geometry.coordinates];
+
+        for (const rings of polygons) {
+            volumes.push({
+                name: props.NAME,
+                airspaceClass: props.CLASS,
+                floor: floor,
+                ceiling: ceiling,
+                rings: rings.map(ring => ring.map(([lon, lat]) => [lon, lat, floor]))
+            });
+        }
+    }
+
+    return volumes;
+}
+
+async function loadAirspace(urls) {
+    const files = await Promise.all(urls.map(url => fetch(url).then(response => response.json())));
+    return files.flatMap(toVolumes);
+}
+
+
+map.on('load', async () => {
 
     // Terrain data source (AWS Terrain Tiles, terrarium encoding).
     map.addSource('terrain-dem', {
@@ -42,374 +121,21 @@ map.on('load', () => {
         }
     });
 
-    // Boston airspace data source.
-    map.addSource('BOSTON', {
-        'type': 'geojson',
-        'data': '/data/BOS_Airspace.geojson'
-    })
+    const volumes = await loadAirspace(AIRSPACE_FILES);
 
-    // Hayward airspace data source.
-    map.addSource('HAYWARD', {
-        'type': 'geojson',
-        'data': "/data/HWD_Airspace.geojson"
+    deckOverlay.setProps({
+        layers: [
+            new SolidPolygonLayer({
+                id: 'airspace',
+                data: volumes,
+                extruded: true,
+                getPolygon: v => v.rings,
+                getElevation: v => v.ceiling - v.floor,
+                getFillColor: v => CLASS_COLORS[v.airspaceClass],
+                // Still hidden by terrain, but translucent faces don't hide each other.
+                parameters: { depthWriteEnabled: false }
+            })
+        ]
     });
-
-    // Oakland airspace data source.
-    map.addSource('OAKLAND', {
-        'type': 'geojson',
-        'data': "/data/OAK_Airspace.geojson"
-    });
-
-    // San Francisco airspace data source.
-    map.addSource('SAN_FRANCISCO', {
-        'type': 'geojson',
-        'data': "/data/SFO_Airspace.geojson"
-    });
-
-    // San Jose airspace data source.
-    map.addSource('SAN_JOSE', {
-        'type': 'geojson',
-        'data': "/data/SJC_Airspace.geojson"
-    });
-
-    // Reid-Hillview airspace data source.
-    map.addSource('REID_HILLVIEW', {
-        'type': 'geojson',
-        'data': "/data/RHV_Airspace.geojson"
-    });
-
-    // Livermore airspace data source.
-    map.addSource('LIVERMORE', {
-        'type': 'geojson',
-        'data': "/data/LVK_Airspace.geojson"
-    });
-
-    // Palo Alto airspace data source.
-    map.addSource('PALO_ALTO', {
-        'type': 'geojson',
-        'data': "/data/PAO_Airspace.geojson"
-    });
-
-    // Palo Alto airspace data source.
-    map.addSource('MONTEREY', {
-        'type': 'geojson',
-        'data': "/data/MRY_Airspace.geojson"
-    });
-
-    // Napa airspace data source.
-    map.addSource('NAPA', {
-        'type': 'geojson',
-        'data': "/data/APC_Airspace.geojson"
-    });
-
-    // Concord airspace data source.
-    map.addSource('CONCORD', {
-        'type': 'geojson',
-        'data': "/data/CCR_Airspace.geojson"
-    });
-
-    // Modesto airspace data source.
-    map.addSource('MODESTO', {
-        'type': 'geojson',
-        'data': "/data/MOD_Airspace.geojson"
-    });
-
-    // San Carlos airspace data source.
-    map.addSource('SAN_CARLOS', {
-        'type': 'geojson',
-        'data': "/data/SQL_Airspace.geojson"
-    });
-
-    // Sacramento SMF airspace data source.
-/*    map.addSource('SACRAMENTO', {
-        'type': 'geojson',
-        'data': "data/SMF_Airspace.geojson"
-    })*/
-
-
-/*    map.addSource('square', {
-        'type': 'geojson',
-        'data': {
-            'type': 'Feature',
-            'geometry': {
-                'type': 'Polygon',
-                'coordinates': [
-                    [
-                        [-122.2902704285912,37.74147722471672],
-                        [-122.2080345060424,37.600228845796],
-                        [-122.0855723645021,37.59703533308231],
-                        [-122.0186539420902,37.63689969266525],
-                        [-122.0010909450218,37.71646253548609],
-                        [-122.1067951845817,37.70803649414341],
-                        [-122.1846146210758,37.7359494186303],
-                        [-122.1738690504987,37.78847517668635],
-                        [-122.2902704285912,37.74147722471672],
-                    ]
-                ]
-            }
-        }
-    });
-
-    //polygon over SFO
-    map.addSource('sfo', {
-        'type': 'geojson',
-        'data': {
-            'type': 'Feature',
-            'geometry': {
-                'type': 'Polygon',
-                'coordinates': [
-                    [
-                        [-122.3448504900793,37.68101509612175],
-                        [-122.3947276382949,37.67937904481626],
-                        [-122.43595232439,37.66285346641784],
-                        [-122.4405496634032,37.63418790358055],
-                        [-122.4229664995798,37.60303719904559],
-                        [-122.3741243346752,37.58715950503361],
-                        [-122.3264471639509,37.58994086753795],
-                        [-122.3096880399944,37.61440645277018],
-                        [-122.3238731588524,37.65728881028559],
-                        [-122.3448504900793,37.68101509612175],
-                    ]
-                ]
-            }
-        }
-    })*/
-
-
-/*    // Display polygon on map on this layer
-    map.addLayer({
-        'id': 'square',
-        'type': 'fill',
-        'source': 'square', // reference the data source above
-        'layout': {},
-        'paint': {
-            'fill-color': '#0080ff', //blue
-            'fill-opacity': 0.5
-        }
-
-    });
-
-    //display sfo polygon
-    map.addLayer({
-        'id': 'sfo',
-        'type': 'fill',
-        'source': 'sfo',
-        'layout': {},
-        'paint': {
-            'fill-color': '#e36259',
-            'fill-opacity': 0.5
-        }
-    })*/
-
-    // Display HAYWARD data 2D
-/*    map.addLayer({
-        'id': 'HAYWARD DISPLAYER',
-        'type': 'fill',
-        'source': 'HAYWARD',
-        'layout': {},
-        'paint': {
-            'fill-color': '#196980',
-            'fill-opacity': 0.5
-        }
-    })*/
-    // Display HAYWARD data 3D
-    map.addLayer({
-        'id': 'HAYWARD_3D',
-        'type': 'fill-extrusion',
-        'source': 'HAYWARD',
-        'layout': {},
-        'filter': ['!=', ['get', 'CLASS'], 'E'],
-        'paint': {
-            'fill-extrusion-color': '#196980',
-            'fill-extrusion-base': ['/', ["to-number", ['get', 'LOWER_VAL']], 3.28084],
-            'fill-extrusion-height': ['/', ["to-number", ['get', 'UPPER_VAL']], 3.28084],
-            'fill-extrusion-opacity': 0.5
-        }
-
-    });
-
-    // Display OAKLAND data 3D
-    map.addLayer({
-        'id': 'OAKLAND_3D',
-        'type': 'fill-extrusion',
-        'source': 'OAKLAND',
-        'layout': {},
-        'filter': ['!=', ['get', 'CLASS'], 'E'],
-        'paint': {
-            'fill-extrusion-color': '#a5778c',
-            'fill-extrusion-base': ['/', ["to-number", ['get', 'LOWER_VAL']], 3.28084],
-            'fill-extrusion-height': ['/', ["to-number", ['get', 'UPPER_VAL']], 3.28084],
-            'fill-extrusion-opacity': 0.5
-        }
-    });
-
-    // Display SAN FRANCISCO data 3D
-    map.addLayer({
-        'id': 'SAN_FRANCISCO_3D',
-        'type': 'fill-extrusion',
-        'source': 'SAN_FRANCISCO',
-        'layout': {},
-        'filter': ['!=', ['get', 'CLASS'], 'E'],
-        'paint': {
-            'fill-extrusion-color': '#052c6e',
-            'fill-extrusion-base': ['/', ["to-number", ['get', 'LOWER_VAL']], 3.28084],
-            'fill-extrusion-height': ['/', ["to-number", ['get', 'UPPER_VAL']], 3.28084],
-            'fill-extrusion-opacity': 0.5
-        }
-    });
-
-    // Display SAN JOSE data 3D
-    map.addLayer({
-        'id': "SAN_JOSE_3D",
-        'type': 'fill-extrusion',
-        'source': 'SAN_JOSE',
-        'layout': {},
-        'filter': ['!=', ['get', 'CLASS'], 'E'],
-        'paint': {
-            'fill-extrusion-color': '#a5778c',
-            'fill-extrusion-base': ['/', ["to-number", ['get', 'LOWER_VAL']], 3.28084],
-            'fill-extrusion-height': ['/', ["to-number", ['get', 'UPPER_VAL']], 3.28084],
-            'fill-extrusion-opacity': 0.5
-        }
-    });
-
-    // Display REID HILLVIEW data 3D
-    map.addLayer({
-        'id': "REID_HILLVIEW_3D",
-        'type': 'fill-extrusion',
-        'source': 'REID_HILLVIEW',
-        'layout': {},
-        'filter': ['!=', ['get', 'CLASS'], 'E'],
-        'paint': {
-            'fill-extrusion-color': '#196980',
-            'fill-extrusion-base': ['/', ["to-number", ['get', 'LOWER_VAL']], 3.28084],
-            'fill-extrusion-height': ['/', ["to-number", ['get', 'UPPER_VAL']], 3.28084],
-            'fill-extrusion-opacity': 0.5
-        }
-    });
-
-    // Display LIVERMORE data 3D
-    map.addLayer({
-        'id': 'LIVERMORE_3D',
-        'type': 'fill-extrusion',
-        'source': 'LIVERMORE',
-        'layout': {},
-        'filter': ['!=', ['get', 'CLASS'], 'E'],
-        'paint': {
-            'fill-extrusion-color': '#196980',
-            'fill-extrusion-base': ['/', ["to-number", ['get', 'LOWER_VAL']], 3.28084],
-            'fill-extrusion-height': ['/', ["to-number", ['get', 'UPPER_VAL']], 3.28084],
-            'fill-extrusion-opacity': 0.5
-        }
-    });
-
-    // Display PALO ALTO data 3D
-    map.addLayer({
-        'id': 'PALO_ALTO_3D',
-        'type': 'fill-extrusion',
-        'source': 'PALO_ALTO',
-        'layout': {},
-        'filter': ['!=', ['get', 'CLASS'], 'E'],
-        'paint': {
-            'fill-extrusion-color': '#196980',
-            'fill-extrusion-base': ['/', ["to-number", ['get', 'LOWER_VAL']], 3.28084],
-            'fill-extrusion-height': ['/', ["to-number", ['get', 'UPPER_VAL']], 3.28084],
-            'fill-extrusion-opacity': 0.5
-        }
-    });
-
-    // Display MONTEREY data 3D
-    map.addLayer({
-        'id': 'MONTEREY_3D',
-        'type': 'fill-extrusion',
-        'source': 'MONTEREY',
-        'layout': {},
-        'filter': ['!=', ['get', 'CLASS'], 'E'],
-        'paint': {
-            'fill-extrusion-color': '#a5778c',
-            'fill-extrusion-base': ['/', ["to-number", ['get', 'LOWER_VAL']], 3.28084],
-            'fill-extrusion-height': ['/', ["to-number", ['get', 'UPPER_VAL']], 3.28084],
-            'fill-extrusion-opacity': 0.5
-        }
-    });
-
-    // Display NAPA data 3D
-    map.addLayer({
-        'id': 'NAPA_3D',
-        'type': 'fill-extrusion',
-        'source': 'NAPA',
-        'layout': {},
-        'filter': ['!=', ['get', 'CLASS'], 'E'],
-        'paint': {
-            'fill-extrusion-color': '#196980',
-            'fill-extrusion-base': ['/', ["to-number", ['get', 'LOWER_VAL']], 3.28084],
-            'fill-extrusion-height': ['/', ["to-number", ['get', 'UPPER_VAL']], 3.28084],
-            'fill-extrusion-opacity': 0.5
-        }
-    });
-
-    // Display CONCORD data 3D
-    map.addLayer({
-        'id': 'CONCORD_3D',
-        'type': 'fill-extrusion',
-        'source': 'CONCORD',
-        'layout': {},
-        'filter': ['!=', ['get', 'CLASS'], 'E'],
-        'paint': {
-            'fill-extrusion-color': '#196980',
-            'fill-extrusion-base': ['/', ["to-number", ['get', 'LOWER_VAL']], 3.28084],
-            'fill-extrusion-height': ['/', ["to-number", ['get', 'UPPER_VAL']], 3.28084],
-            'fill-extrusion-opacity': 0.5
-        }
-    });
-
-    // Display MODESTO data 3D
-    map.addLayer({
-        'id': 'MODESTO_3D',
-        'type': 'fill-extrusion',
-        'source': 'MODESTO',
-        'layout': {},
-        'filter': ['!=', ['get', 'CLASS'], 'E'],
-        'paint': {
-            'fill-extrusion-color': '#196980',
-            'fill-extrusion-base': ['/', ["to-number", ['get', 'LOWER_VAL']], 3.28084],
-            'fill-extrusion-height': ['/', ["to-number", ['get', 'UPPER_VAL']], 3.28084],
-            'fill-extrusion-opacity': 0.5
-        }
-    });
-
-    // Display SAN CARLOS data 3D
-    map.addLayer({
-        'id': 'SAN_CARLOS_3D',
-        'type': 'fill-extrusion',
-        'source': 'SAN_CARLOS',
-        'layout': {},
-        'filter': ['!=', ['get', 'CLASS'], 'E'],
-        'paint': {
-            'fill-extrusion-color': '#196980',
-            'fill-extrusion-base': ['/', ["to-number", ['get', 'LOWER_VAL']], 3.28084],
-            'fill-extrusion-height': ['/', ["to-number", ['get', 'UPPER_VAL']], 3.28084],
-            'fill-extrusion-opacity': 0.5
-        }
-    });
-
-    // Display BOSTON data 3D
-    map.addLayer({
-        'id': 'BOSTON_3D',
-        'type': 'fill-extrusion',
-        'source': 'BOSTON',
-        'layout': {},
-        'filter': ['!=', ['get', 'CLASS'], 'E'],
-        'paint': {
-            'fill-extrusion-color': '#196980',
-            'fill-extrusion-base': ['/', ["to-number", ['get', 'LOWER_VAL']], 3.28084],
-            'fill-extrusion-height': ['/', ["to-number", ['get', 'UPPER_VAL']], 3.28084],
-            'fill-extrusion-opacity': 0.5
-        }
-    });
-
-
 
 });
-
-

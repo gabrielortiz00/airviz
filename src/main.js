@@ -23,11 +23,12 @@ const AIRSPACE_FILES = [
     '/data/BOS_Airspace.geojson'  // Boston
 ];
 
-// Colors loosely follow sectional chart conventions: B blue, C magenta, D lighter blue.
+// Colors loosely follow sectional chart conventions: B blue, C magenta.
+// D is dashed blue on a sectional; cyan keeps it distinct from B in 3D.
 const CLASS_COLORS = {
-    'B': [0, 82, 204, 90],
-    'C': [173, 31, 140, 90],
-    'D': [70, 140, 230, 90]
+    'B': [20, 80, 170, 100],
+    'C': [176, 30, 120, 90],
+    'D': [0, 165, 200, 70]
 };
 
 

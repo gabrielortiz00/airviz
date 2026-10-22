@@ -7,6 +7,7 @@
 - Altitude query: position + altitude, get the airspace you're in.
 - Class E and special use airspace.
 
+- Tilting on phones is hard to find (issue #6). It works with two fingers side by side, level, dragged up or down together. Add that to the About text, and a "3D" button in the corner controls that tilts to about 60° and back.
 - Drag controls feel inverted on the rotation axis. Figure out which direction and flip it.
 - Class checkboxes take about 0.2 s to redraw. If that feels slow, deck.gl's DataFilterExtension filters on the GPU instantly.
 - Check tapping volumes on a phone.

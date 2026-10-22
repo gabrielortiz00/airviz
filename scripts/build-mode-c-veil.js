@@ -2,12 +2,15 @@
 // scripts/mode-c-veil.json, centered on its NASR airport reference point. Overlapping circles
 // are merged, so New York (JFK, LaGuardia, Newark) becomes one shape, like on the charts.
 //
-// Usage: node scripts/build-mode-c-veil.js <APT_BASE.csv> <mode-c-veil.geojson>
+// Also builds mode-c-veil-wall.geojson, a thin band just inside each area's edge. The site
+// raises it into a see-through wall, so the veil shows as a wall without a lid on top.
+//
+// Usage: node scripts/build-mode-c-veil.js <APT_BASE.csv> <mode-c-veil.geojson> <mode-c-veil-wall.geojson>
 
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { union } from 'polyclip-ts';
+import { difference, union } from 'polyclip-ts';
 import { readNasrCsv } from './nasr-csv.js';
 
 const VEIL_FILE = path.join(path.dirname(fileURLToPath(import.meta.url)), 'mode-c-veil.json');
@@ -16,9 +19,12 @@ const METERS_PER_NM = 1852;
 const EARTH_RADIUS_M = 6371008.8;
 const CIRCLE_POINTS = 256;
 
-const [inputPath, outputPath] = process.argv.slice(2);
-if (!inputPath || !outputPath) {
-    console.error('Usage: node scripts/build-mode-c-veil.js <APT_BASE.csv> <mode-c-veil.geojson>');
+// How thick the wall band is. Thin enough to read as a wall, thick enough to draw cleanly.
+const WALL_THICKNESS_M = 50;
+
+const [inputPath, outputPath, wallPath] = process.argv.slice(2);
+if (!inputPath || !outputPath || !wallPath) {
+    console.error('Usage: node scripts/build-mode-c-veil.js <APT_BASE.csv> <mode-c-veil.geojson> <mode-c-veil-wall.geojson>');
     process.exit(1);
 }
 
@@ -92,4 +98,15 @@ const features = merged.map(polygon => {
 });
 
 fs.writeFileSync(outputPath, JSON.stringify({ type: 'FeatureCollection', features }));
+
+// The wall band: the merged areas minus the same areas shrunk by the wall thickness.
+const inner = union(...centers.map(center => circle(center.point, radiusM - WALL_THICKNESS_M)));
+const wall = difference(merged, inner);
+const wallFeatures = wall.map(polygon => ({
+    type: 'Feature',
+    properties: { LOWER_VAL: 0, UPPER_VAL: veil.ceilingMsl },
+    geometry: { type: 'Polygon', coordinates: polygon }
+}));
+fs.writeFileSync(wallPath, JSON.stringify({ type: 'FeatureCollection', features: wallFeatures }));
+
 console.log(`Mode C veil: ${centers.length} airports merged into ${features.length} areas.`);

@@ -156,6 +156,72 @@
             "point": [-122.10429, 37.45378], "altitude": 2200,
             "expect": { "ident": "NUQ", "class": "D" },
             "source": "Same point. Palo Alto's Class D tops out at 2,000 or below, Moffett's goes up to but not including 2,500 (Federal Register doc 98-11856)."
+        },
+        {
+            "name": "Moffett/Palo Alto overlap at exactly Palo Alto's ceiling: Moffett",
+            "point": [-122.10429, 37.45378], "altitude": 1500,
+            "expect": { "ident": "NUQ", "class": "D" },
+            "source": "This point is in Palo Alto's 1,500 ft sector, which goes up to but not including 1,500 (NASR). Moffett's Class D covers everything above Palo Alto's up to 2,500 (Federal Register doc 98-11856), so 1,500 itself is Moffett's."
+        },
+        {
+            "name": "Destin surface area",
+            "point": [-86.47147222, 30.40005472], "altitude": 1000,
+            "expect": { "ident": "DTS", "class": "D" },
+            "source": "Destin Class D: surface to and including 1,600 MSL within 4.4 miles of Destin Executive (Federal Register doc 2016-14377)"
+        },
+        {
+            "name": "Destin ceiling is included",
+            "point": [-86.47147222, 30.40005472], "altitude": 1600,
+            "expect": { "ident": "DTS", "class": "D" },
+            "source": "Destin Class D: 'to and including 1,600 feet MSL' (Federal Register doc 2016-14377)"
+        },
+        {
+            "name": "Above Destin: Eglin's Class D",
+            "point": [-86.47147222, 30.40005472], "altitude": 2000,
+            "expect": { "ident": "VPS", "class": "D" },
+            "source": "Eglin Class D covers the 4.4-mile Destin radius up to 2,600 MSL and excludes Destin's Class D only up to 1,600 (Federal Register doc 2016-14377)"
+        },
+        {
+            "name": "Eglin surface area",
+            "point": [-86.52604433, 30.48321941], "altitude": 1000,
+            "expect": { "ident": "VPS", "class": "D" },
+            "source": "Eglin Class D: surface to 2,600 MSL within 5.5 miles of Eglin AFB (Federal Register doc 2016-14377)"
+        },
+        {
+            "name": "Grand Prairie surface area (field elevation 590)",
+            "point": [-97.04691666, 32.69877777], "altitude": 1000,
+            "expect": { "ident": "GPM", "class": "D" },
+            "source": "Grand Prairie Class D: surface up to but not including 2,000 MSL (Federal Register doc E9-21269)"
+        },
+        {
+            "name": "Grand Prairie ceiling is not included",
+            "point": [-97.04691666, 32.69877777], "altitude": 2000,
+            "expect": { "notIdent": "GPM" },
+            "source": "Grand Prairie Class D: 'to but not including 2,000 feet MSL' (Federal Register doc E9-21269)"
+        },
+        {
+            "name": "Pompano Beach surface area",
+            "point": [-80.1111275, 26.24736], "altitude": 1000,
+            "expect": { "ident": "PMP", "class": "D" },
+            "source": "Pompano Beach Class D: surface to and including 2,500 MSL within 4 miles of Pompano Beach Airpark (Federal Register doc 2021-13274)"
+        },
+        {
+            "name": "Pompano Beach ceiling is included",
+            "point": [-80.1111275, 26.24736], "altitude": 2500,
+            "expect": { "ident": "PMP", "class": "D" },
+            "source": "Pompano Beach Class D: 'to and including 2,500 feet MSL' (Federal Register doc 2021-13274)"
+        },
+        {
+            "name": "Boca Raton surface area",
+            "point": [-80.10769638, 26.37848555], "altitude": 1000,
+            "expect": { "ident": "BCT", "class": "D" },
+            "source": "Boca Raton Class D around Boca Raton Airport (Federal Register doc 00-21129)"
+        },
+        {
+            "name": "San Diego Class B carve-out is empty",
+            "point": [-117.173182870963, 32.7424027775], "altitude": 1650,
+            "expect": { "notIdent": "SAN" },
+            "source": "FAA NASR exclusion feature for San Diego Class B, surface to 3,300 MSL. Point is inside the carve-out."
         }
     ]
 }

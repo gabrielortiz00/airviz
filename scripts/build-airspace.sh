@@ -9,15 +9,20 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUT_DIR="$REPO_ROOT/public/data"
 
-# Region to export (lon/lat): SF Bay Area, Monterey, Modesto and Napa.
-REGION_BBOX="-123.2 36.4 -120.8 38.6"
+# Optional region to export as "minLon minLat maxLon maxLat", e.g. "-123.2 36.4 -120.8 38.6"
+# for the SF Bay Area. Empty means the whole country.
+REGION_BBOX="${REGION_BBOX:-}"
+
+# The FAA draws arcs with a point every few meters. Simplifying to about 2 m (in degrees)
+# makes the file about 15 times smaller without any visible difference.
+SIMPLIFY_DEGREES="0.00002"
 
 # Only the fields we use. UPPER_DESC says whether the ceiling is included (TI) or not (TNI).
-FIELDS="IDENT,NAME,CLASS,LOWER_VAL,LOWER_CODE,UPPER_VAL,UPPER_CODE,UPPER_DESC"
+# EXCLUSION marks carve-outs, which resolve-overlaps.js subtracts from their airspace.
+FIELDS="IDENT,NAME,CLASS,LOWER_VAL,LOWER_CODE,UPPER_VAL,UPPER_CODE,UPPER_DESC,EXCLUSION"
 
-# Class B, C and D only. Exclusion features are carve-outs from other airspace
-# (San Diego Class B, King Salmon Class D), which a solid volume can't show yet.
-WHERE="CLASS IN ('B','C','D') AND EXCLUSION = '0'"
+# Class B, C and D only.
+WHERE="CLASS IN ('B','C','D')"
 
 
 # Find the NASR cycle folder.
@@ -73,10 +78,16 @@ echo "Output: $OUT_FILE"
 # single exact conversion between them.
 # RFC7946=YES writes standard GeoJSON with consistent polygon winding.
 # -dim XY drops the unused z values from the shapefile's 3D polygons.
+REGION_ARGS=()
+if [[ -n "$REGION_BBOX" ]]; then
+    REGION_ARGS=(-spat $REGION_BBOX)
+fi
+
 "$OGR2OGR" -f GeoJSON "$RAW_FILE" "$SHAPEFILE" \
     -a_srs EPSG:4326 \
-    -spat $REGION_BBOX \
+    ${REGION_ARGS[@]+"${REGION_ARGS[@]}"} \
     -where "$WHERE" \
+    -simplify "$SIMPLIFY_DEGREES" \
     -select "$FIELDS" \
     -dim XY \
     -nln airspace \

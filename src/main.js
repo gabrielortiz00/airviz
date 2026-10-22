@@ -31,9 +31,12 @@ const map = new maplibregl.Map({
 
 // Altitudes as a pilot reads them, e.g. "SFC to 2,000 MSL" or "1,500 MSL up to but not including 2,100 MSL".
 function formatAltitudes(volume) {
-    const floor = volume.lowerCode === 'SFC' && Number(volume.lowerVal) === 0
+    let floor = volume.lowerCode === 'SFC' && Number(volume.lowerVal) === 0
         ? 'SFC'
         : `${Number(volume.lowerVal).toLocaleString()} ${volume.lowerCode}`;
+    if (volume.lowerDesc === 'ABV') {
+        floor = `Above ${floor}`; // the floor altitude itself belongs to the airspace below
+    }
     const ceiling = `${Number(volume.upperVal).toLocaleString()} ${volume.upperCode}`;
 
     if (volume.upperDesc === 'TNI') {
@@ -91,6 +94,7 @@ function toVolumes(geojson) {
                 // Original FAA values (feet) for the tooltip.
                 lowerVal: props.LOWER_VAL,
                 lowerCode: props.LOWER_CODE,
+                lowerDesc: props.LOWER_DESC,
                 upperVal: props.UPPER_VAL,
                 upperCode: props.UPPER_CODE,
                 upperDesc: props.UPPER_DESC,

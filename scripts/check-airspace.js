@@ -40,11 +40,12 @@ function inShape(point, geometry) {
     return polygons.some(([outer, ...holes]) => inRing(point, outer) && !holes.some(hole => inRing(point, hole)));
 }
 
-// Floors are included. Ceilings are included unless marked TNI (up to but not including).
+// Floors are included unless marked ABV (starts just above). Ceilings are included unless
+// marked TNI (up to but not including).
 function inBand(altitude, props) {
     const floor = Number(props.LOWER_VAL);
     const ceiling = Number(props.UPPER_VAL);
-    if (altitude < floor) {
+    if (props.LOWER_DESC === 'ABV' ? altitude <= floor : altitude < floor) {
         return false;
     }
     return props.UPPER_DESC === 'TNI' ? altitude < ceiling : altitude <= ceiling;

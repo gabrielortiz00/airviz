@@ -15,7 +15,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { difference, intersection } from 'polyclip-ts';
+import { difference, intersection, union } from 'polyclip-ts';
 
 const RULES_FILE = path.join(path.dirname(fileURLToPath(import.meta.url)), 'airspace-rules.json');
 
@@ -23,6 +23,11 @@ const CLASS_RANK = { 'B': 0, 'C': 1, 'D': 2 };
 
 // Pieces smaller than this are clipping leftovers and are dropped.
 const MIN_PIECE_KM2 = 0.001;
+
+// Polygons narrower than this on average are slivers left where two volumes' edges don't
+// quite line up. Real airspace is hundreds of meters wide or more, and charts can't show
+// anything narrower than about 0.1 nm (185 m).
+const MIN_WIDTH_M = 100;
 
 // Class D overlaps smaller than this are boundary slivers, not real shared airspace.
 const FLAG_KM2 = 0.05;
@@ -69,6 +74,27 @@ function areaKm2(multiPolygon) {
         }
     }
     return area;
+}
+
+// Approximate length of a ring in km.
+function ringLengthKm(ring) {
+    let length = 0;
+    for (let i = 0; i < ring.length - 1; i++) {
+        const [x1, y1] = ring[i];
+        const [x2, y2] = ring[i + 1];
+        const dx = (x2 - x1) * Math.cos(((y1 + y2) / 2) * Math.PI / 180);
+        const dy = y2 - y1;
+        length += Math.sqrt(dx * dx + dy * dy) * 111.32;
+    }
+    return length;
+}
+
+// Drop the sliver polygons from a MultiPolygon (average width = 2 × area / perimeter).
+function withoutSlivers(multiPolygon) {
+    return multiPolygon.filter(polygon => {
+        const widthM = 2 * areaKm2([polygon]) / ringLengthKm(polygon[0]) * 1000;
+        return widthM >= MIN_WIDTH_M;
+    });
 }
 
 function bbox(multiPolygon) {
@@ -122,7 +148,10 @@ const volumes = input.features.map((feature, index) => {
         ceiling: Number(props.UPPER_VAL),
         lowerCode: props.LOWER_CODE,
         upperCode: props.UPPER_CODE,
-        upperDesc: props.UPPER_DESC
+        upperDesc: props.UPPER_DESC,
+        lowerDesc: null,
+        // A carve-out from this airport's airspace (e.g. parts of San Diego Class B).
+        isExclusion: props.EXCLUSION === '1'
     };
 });
 
@@ -170,6 +199,18 @@ for (let i = 0; i < volumes.length; i++) {
         if (!bandsOverlap(a, b) || !bboxesTouch(a.bbox, b.bbox)) {
             continue;
         }
+
+        // A carve-out removes space only from its own airport's airspace of the same class.
+        if (a.isExclusion || b.isExclusion) {
+            const sameAirspace = a.ident === b.ident && a.airspaceClass === b.airspaceClass;
+            if (sameAirspace && a.isExclusion && !b.isExclusion) {
+                winners[j].push(a);
+            } else if (sameAirspace && b.isExclusion && !a.isExclusion) {
+                winners[i].push(b);
+            }
+            continue;
+        }
+
         if (beats(a, b)) {
             winners[j].push(a);
         } else {
@@ -185,6 +226,13 @@ if (unresolved.length > 0) {
     }
     console.error('Look up who owns each overlap in the legal descriptions (FAA Order JO 7400.11, paragraph 5000) and add a rule.');
     process.exit(1);
+}
+
+// Warn about rules that are inferred rather than read from the legal text.
+for (const rule of rules) {
+    if (rule.verified === false && usedRules.has(rule)) {
+        console.warn(`Unverified rule in use: ${rule.airspace} excludes ${rule.excludes}. ${rule.source}`);
+    }
 }
 
 // Warn about rules for airports that are both in the data but no longer overlap.
@@ -220,10 +268,12 @@ function cut(piece, winner) {
             });
         }
         if (winner.ceiling < piece.ceiling) {
-            // Above the winner.
+            // Above the winner. If the winner's ceiling is included (e.g. "to and including
+            // 1,600"), this piece starts just above it: ABV marks the floor as not included.
             result.push({
                 ...piece, shape: inside,
-                floor: winner.ceiling, lowerCode: winner.upperCode
+                floor: winner.ceiling, lowerCode: winner.upperCode,
+                lowerDesc: winner.upperDesc === 'TNI' ? null : 'ABV'
             });
         }
     }
@@ -234,13 +284,20 @@ function cut(piece, winner) {
 const features = [];
 
 for (const volume of volumes) {
+    if (volume.isExclusion) {
+        continue; // carve-outs are subtracted, never drawn
+    }
+
     let pieces = [volume];
     for (const winner of winners[volume.index]) {
         pieces = pieces.flatMap(piece => cut(piece, winner));
     }
 
     for (const piece of pieces) {
-        if (areaKm2(piece.shape) < MIN_PIECE_KM2) {
+        // Rounding can collapse tiny rings or make edges cross, so rebuild the shape from
+        // the rounded coordinates. A union of one shape with itself comes back valid.
+        const shape = withoutSlivers(union(roundCoordinates(piece.shape)));
+        if (shape.length === 0 || areaKm2(shape) < MIN_PIECE_KM2) {
             continue;
         }
         features.push({
@@ -251,11 +308,12 @@ for (const volume of volumes) {
                 CLASS: piece.airspaceClass,
                 LOWER_VAL: piece.floor,
                 LOWER_CODE: piece.lowerCode,
+                LOWER_DESC: piece.lowerDesc,
                 UPPER_VAL: piece.ceiling,
                 UPPER_CODE: piece.upperCode,
                 UPPER_DESC: piece.upperDesc
             },
-            geometry: { type: 'MultiPolygon', coordinates: roundCoordinates(piece.shape) }
+            geometry: { type: 'MultiPolygon', coordinates: shape }
         });
     }
 }
@@ -263,4 +321,5 @@ for (const volume of volumes) {
 fs.writeFileSync(outputPath, JSON.stringify({ type: 'FeatureCollection', features: features }));
 
 const cutCount = winners.filter(list => list.length > 0).length;
-console.log(`Overlaps: cut ${cutCount} of ${volumes.length} volumes into ${features.length} pieces.`);
+const exclusionCount = volumes.filter(v => v.isExclusion).length;
+console.log(`Overlaps: cut ${cutCount} of ${volumes.length} volumes (${exclusionCount} carve-outs) into ${features.length} pieces.`);

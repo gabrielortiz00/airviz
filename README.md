@@ -18,7 +18,7 @@ AirViz renders that same airspace in 3D:
 
 ## What it does
 
-- Shows Class B, C and D airspace around the San Francisco Bay Area as 3D volumes at their real floors and ceilings, on top of real terrain.
+- Shows all Class B, C and D airspace in the US, including Alaska, Hawaii and the territories, as 3D volumes at their real floors and ceilings, on top of real terrain.
 - Hover over a volume to see its name and altitudes, written the way you'd read them off a chart, like "SFC up to but not including 1,500 MSL".
 - Tells you which FAA data cycle you're looking at, and warns you when it's out of date.
 
@@ -30,8 +30,8 @@ The airspace data comes from the FAA's [NASR subscription](https://www.faa.gov/a
 
 `scripts/build-airspace.sh` turns that shapefile into the file the site loads, in three steps:
 
-1. **Export.** GDAL's `ogr2ogr` pulls out Class B, C and D in the Bay Area, keeping only the fields the site needs.
-2. **Fix overlaps** (`scripts/resolve-overlaps.js`). The FAA stores each airport's airspace as its full shape, so they overlap. In reality you're only ever in one airspace at a time, and the legal descriptions settle who owns what with "excluding ..." clauses that aren't in the shapefile. The script cuts each volume wherever a higher class sits on it (B over C over D), only in the altitude band where they overlap. For the rare case of two Class D areas overlapping, it follows a small rules file I fill in from the legal text. For example, Moffett's Class D excludes Palo Alto's. If a new overlap shows up without a rule, the build stops so I can look it up instead of guessing.
+1. **Export.** GDAL's `ogr2ogr` pulls out every Class B, C and D area, keeping only the fields the site needs. The FAA draws arcs with a point every few meters, so the shapes get simplified to about 2 m. That makes the file about 15 times smaller (2.2 MB gzipped for the whole country) with no visible difference.
+2. **Fix overlaps** (`scripts/resolve-overlaps.js`). The FAA stores each airport's airspace as its full shape, so they overlap. In reality you're only ever in one airspace at a time, and the legal descriptions settle who owns what with "excluding ..." clauses that aren't in the shapefile. The script cuts each volume wherever a higher class sits on it (B over C over D), only in the altitude band where they overlap. For the rare case of two Class D areas overlapping, it follows a small rules file I fill in from the legal text. For example, Moffett's Class D excludes Palo Alto's. If a new overlap shows up without a rule, the build stops so I can look it up instead of guessing. The script also subtracts the FAA's carve-out features, like the notches cut out of San Diego's Class B.
 3. **Check** (`scripts/check-airspace.js`). The result gets tested against known points from the sectional and the legal descriptions. For example: at 1,499 ft over Hayward you're in Hayward's Class D, at 1,500 ft you're not. If any check fails, the build fails.
 
 In the browser, MapLibre draws the base map and the terrain, and deck.gl draws the airspace volumes inside the same map so they line up with the ground.
@@ -66,7 +66,7 @@ The script uses the newest cycle folder, writes `public/data/airspace.geojson` a
 
 ## Status
 
-Live for the San Francisco Bay Area. For now I update the data by hand each cycle.
+Live for the whole US. For now I update the data by hand each cycle.
 
 ## Roadmap
 
@@ -76,7 +76,7 @@ Live for the San Francisco Bay Area. For now I update the data by hand each cycl
 - [ ] Altitude query: enter a position and altitude, get back the airspace you're in
 - [ ] Class E and special use airspace
 - [ ] Part-time airspace, like Class D that turns into Class E or G when the tower closes
-- [ ] Nationwide coverage
+- [x] Nationwide coverage
 - [ ] Real-time flight data overlay
 - [ ] Mobile-friendly layout
 

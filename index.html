@@ -4,12 +4,24 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>airviz</title>
+    <meta name="description" content="Interactive 3D view of US airspace from FAA data, built to help pilots understand airspace structure." />
+    <title>AirViz: 3D Airspace</title>
   </head>
   <body>
-    <div id="app" style="width: 100%; height: 100vh">
+    <div id="app"></div>
 
-    </div>
+    <aside class="notice">
+      <h1>AirViz</h1>
+      <p><span class="warning">Not for navigation.</span> A learning tool only. Always use current FAA charts and a preflight briefing.</p>
+      <p class="cycle" id="cycle">Loading FAA data cycle...</p>
+      <details>
+        <summary>About</summary>
+        <p>3D view of Class B, C and D airspace in the San Francisco Bay Area. Hover a volume to see its name and altitudes. Drag to pan, right-drag or Ctrl-drag to tilt and rotate.</p>
+        <p>Airspace from the FAA <a href="https://www.faa.gov/air_traffic/flight_info/aeronav/aero_data/NASR_Subscription/" target="_blank" rel="noopener">NASR</a> 28-day subscription. Where airspace areas overlap, ownership follows the FAA legal descriptions. Not shown yet: Class E, special use airspace, TFRs and part-time airspace hours.</p>
+        <p>Basemap from <a href="https://openfreemap.org/" target="_blank" rel="noopener">OpenFreeMap</a> and OpenStreetMap contributors. Terrain from <a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noopener">AWS Terrain Tiles</a> (Mapzen). Source code on <a href="https://github.com/gabrielortiz00/airviz" target="_blank" rel="noopener">GitHub</a>.</p>
+      </details>
+    </aside>
+
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

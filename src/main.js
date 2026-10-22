@@ -2,6 +2,7 @@ import maplibregl from "maplibre-gl";
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { MapboxOverlay } from '@deck.gl/mapbox';
 import { SolidPolygonLayer } from '@deck.gl/layers';
+import './style.css'
 
 
 const FEET_TO_METERS = 0.3048;
@@ -100,6 +101,37 @@ function toVolumes(geojson) {
 
     return volumes;
 }
+
+// Show which NASR cycle the data is from. A cycle takes effect at 0901 UTC on its
+// effective date and lasts 28 days.
+async function showCycle() {
+    const cycleText = document.getElementById('cycle');
+    try {
+        const { effective } = await (await fetch('/data/cycle.json')).json();
+        const [year, month, day] = effective.split('-').map(Number);
+        const start = new Date(Date.UTC(year, month - 1, day, 9, 1));
+        const end = new Date(start.getTime() + 28 * 24 * 60 * 60 * 1000);
+        const now = new Date();
+
+        const dateFormat = { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' };
+        const startText = start.toLocaleDateString('en-US', dateFormat);
+        const endText = end.toLocaleDateString('en-US', dateFormat);
+
+        if (now < start) {
+            cycleText.textContent = `FAA data for the upcoming cycle, effective ${startText}.`;
+        } else if (now < end) {
+            cycleText.textContent = `FAA data effective ${startText} to ${endText}.`;
+        } else {
+            cycleText.textContent = `FAA data expired ${endText}. Airspace may be out of date.`;
+            cycleText.classList.add('stale');
+        }
+    } catch (error) {
+        cycleText.textContent = 'FAA data cycle unknown. Airspace may be out of date.';
+        cycleText.classList.add('stale');
+    }
+}
+
+showCycle();
 
 async function loadAirspace(urls) {
     const files = await Promise.all(urls.map(url => fetch(url).then(response => response.json())));

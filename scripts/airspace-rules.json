@@ -1,0 +1,10 @@
+{
+    "about": "Who owns the overlap when two different airports' Class D areas overlap. The NASR shapefile doesn't say; the answer is in each area's legal description in FAA Order JO 7400.11 (paragraph 5000). 'airspace' is the IDENT whose description excludes the other, so 'excludes' wins the overlap.",
+    "classDExclusions": [
+        {
+            "airspace": "NUQ",
+            "excludes": "PAO",
+            "source": "Mountain View (Moffett) Class D: '...excluding the portion within the Palo Alto of Santa Clara County Airport, CA, Class D airspace area.' Federal Register, 1995-07-17, doc 95-17404: https://www.govinfo.gov/content/pkg/FR-1995-07-17/html/95-17404.htm"
+        }
+    ]
+}

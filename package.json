@@ -10,6 +10,7 @@
     "build:airspace": "scripts/build-airspace.sh"
   },
   "devDependencies": {
+    "polyclip-ts": "^0.16.8",
     "vite": "^8.0.4"
   },
   "dependencies": {

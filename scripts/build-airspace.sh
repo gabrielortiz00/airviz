@@ -12,8 +12,8 @@ OUT_DIR="$REPO_ROOT/public/data"
 # Region to export (lon/lat): SF Bay Area, Monterey, Modesto and Napa.
 REGION_BBOX="-123.2 36.4 -120.8 38.6"
 
-# Only the fields main.js uses.
-FIELDS="IDENT,NAME,CLASS,LOWER_VAL,LOWER_CODE,UPPER_VAL,UPPER_CODE"
+# Only the fields we use. UPPER_DESC says whether the ceiling is included (TI) or not (TNI).
+FIELDS="IDENT,NAME,CLASS,LOWER_VAL,LOWER_CODE,UPPER_VAL,UPPER_CODE,UPPER_DESC"
 
 # Class B, C and D only. Exclusion features are carve-outs from other airspace
 # (San Diego Class B, King Salmon Class D), which a solid volume can't show yet.
@@ -58,7 +58,11 @@ fi
 
 mkdir -p "$OUT_DIR"
 OUT_FILE="$OUT_DIR/airspace.geojson"
-rm -f "$OUT_FILE"
+
+# ogr2ogr writes the raw export here, then resolve-overlaps.js writes the final file.
+TMP_DIR="$(mktemp -d)"
+trap 'rm -rf "$TMP_DIR"' EXIT
+RAW_FILE="$TMP_DIR/airspace-raw.geojson"
 
 echo "Cycle:  $CYCLE_DATE"
 echo "Input:  $SHAPEFILE"
@@ -69,7 +73,7 @@ echo "Output: $OUT_FILE"
 # single exact conversion between them.
 # RFC7946=YES writes standard GeoJSON with consistent polygon winding.
 # -dim XY drops the unused z values from the shapefile's 3D polygons.
-"$OGR2OGR" -f GeoJSON "$OUT_FILE" "$SHAPEFILE" \
+"$OGR2OGR" -f GeoJSON "$RAW_FILE" "$SHAPEFILE" \
     -a_srs EPSG:4326 \
     -spat $REGION_BBOX \
     -where "$WHERE" \
@@ -79,7 +83,11 @@ echo "Output: $OUT_FILE"
     -lco RFC7946=YES \
     -lco COORDINATE_PRECISION=6
 
+# Cut overlapping volumes so each point in space belongs to one airspace.
+# Stops the build if a Class D overlap has no rule in scripts/airspace-rules.json.
+node "$REPO_ROOT/scripts/resolve-overlaps.js" "$RAW_FILE" "$OUT_FILE"
+
 # Record which cycle the data is from, so the site can show it.
 printf '{\n    "effective": "%s"\n}\n' "$CYCLE_DATE" > "$OUT_DIR/cycle.json"
 
-echo "Done: $(grep -c '"type": "Feature"' "$OUT_FILE") features, $(du -h "$OUT_FILE" | cut -f1)"
+echo "Done: $(du -h "$OUT_FILE" | cut -f1)"

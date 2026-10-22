@@ -31,5 +31,5 @@ STEPLOG.md
 28DaySubscription_Effective_*/
 
 # Local data files (large GeoJSON, external datasets, QGIS project files)
-data/
+/data/
 *.qmd

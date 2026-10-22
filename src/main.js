@@ -6,21 +6,9 @@ import { SolidPolygonLayer } from '@deck.gl/layers';
 
 const FEET_TO_METERS = 0.3048;
 
-// Airspace files exported from the FAA NASR Class_Airspace shapefile.
+// Built from the FAA NASR Class_Airspace shapefile by scripts/build-airspace.sh.
 const AIRSPACE_FILES = [
-    '/data/SFO_Airspace.geojson', // San Francisco
-    '/data/OAK_Airspace.geojson', // Oakland
-    '/data/SJC_Airspace.geojson', // San Jose
-    '/data/HWD_Airspace.geojson', // Hayward
-    '/data/RHV_Airspace.geojson', // Reid-Hillview
-    '/data/LVK_Airspace.geojson', // Livermore
-    '/data/PAO_Airspace.geojson', // Palo Alto
-    '/data/SQL_Airspace.geojson', // San Carlos
-    '/data/CCR_Airspace.geojson', // Concord
-    '/data/APC_Airspace.geojson', // Napa
-    '/data/MOD_Airspace.geojson', // Modesto
-    '/data/MRY_Airspace.geojson', // Monterey
-    '/data/BOS_Airspace.geojson'  // Boston
+    '/data/airspace.geojson'
 ];
 
 // Colors loosely follow sectional chart conventions: B blue, C magenta.

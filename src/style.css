@@ -61,6 +61,11 @@ body {
   font-weight: 600;
 }
 
+.notice .report {
+  margin-top: 4px;
+  color: var(--text-muted);
+}
+
 .notice details {
   margin-top: 6px;
 }

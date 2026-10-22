@@ -1,0 +1,39 @@
+name: Airspace looks wrong
+description: Something on the map doesn't match the charts or the legal description.
+title: "Airspace: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for checking! The more specific you can be, the faster I can fix it.
+  - type: input
+    id: location
+    attributes:
+      label: Where
+      description: Filled in from the map when you use the link on the site. Add a nearby airport or landmark if you can.
+      placeholder: "e.g. 37.45, -122.10 (zoom 12), near Palo Alto"
+    validations:
+      required: true
+  - type: input
+    id: airspace
+    attributes:
+      label: Which airspace
+      description: The name shown when you hover it, if any.
+      placeholder: "e.g. PALO ALTO CLASS D"
+  - type: textarea
+    id: problem
+    attributes:
+      label: What looks wrong
+      description: Wrong floor or ceiling, wrong shape, missing, or there when it shouldn't be.
+    validations:
+      required: true
+  - type: textarea
+    id: reference
+    attributes:
+      label: What the chart says
+      description: Which chart or source (sectional, TAC, Chart Supplement, legal description) and what it shows.
+  - type: input
+    id: cycle
+    attributes:
+      label: Data cycle
+      description: Filled in from the site.

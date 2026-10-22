@@ -45,12 +45,19 @@ function formatAltitudes(volume) {
     return `${floor} to ${ceiling}`;
 }
 
+// The last airspace hovered, so an issue report can name it.
+let lastHovered = null;
+
 // deck.gl draws the airspace inside the MapLibre map, so it shares the camera and terrain.
 const deckOverlay = new MapboxOverlay({
     interleaved: true,
     layers: [],
-    getTooltip: ({ object }) => object && {
-        text: `${object.name}\n${formatAltitudes(object)}`
+    getTooltip: ({ object }) => {
+        if (!object) {
+            return null;
+        }
+        lastHovered = object;
+        return { text: `${object.name}\n${formatAltitudes(object)}` };
     }
 });
 map.addControl(deckOverlay);
@@ -106,12 +113,16 @@ function toVolumes(geojson) {
     return volumes;
 }
 
+// Effective date of the loaded NASR cycle, e.g. "2026-10-29".
+let cycleEffective = 'unknown';
+
 // Show which NASR cycle the data is from. A cycle takes effect at 0901 UTC on its
 // effective date and lasts 28 days.
 async function showCycle() {
     const cycleText = document.getElementById('cycle');
     try {
         const { effective } = await (await fetch('/data/cycle.json')).json();
+        cycleEffective = effective;
         const [year, month, day] = effective.split('-').map(Number);
         const start = new Date(Date.UTC(year, month - 1, day, 9, 1));
         const end = new Date(start.getTime() + 28 * 24 * 60 * 60 * 1000);
@@ -136,6 +147,21 @@ async function showCycle() {
 }
 
 showCycle();
+
+// Fill in the GitHub issue form with where the map is looking, the data cycle and the
+// last airspace hovered (field ids match .github/ISSUE_TEMPLATE/airspace-error.yml).
+document.getElementById('report-link').addEventListener('click', event => {
+    const { lng, lat } = map.getCenter();
+    const params = new URLSearchParams({
+        template: 'airspace-error.yml',
+        location: `${lat.toFixed(4)}, ${lng.toFixed(4)} (zoom ${map.getZoom().toFixed(1)})`,
+        cycle: cycleEffective
+    });
+    if (lastHovered) {
+        params.set('airspace', lastHovered.name);
+    }
+    event.currentTarget.href = `https://github.com/gabrielortiz00/airviz/issues/new?${params}`;
+});
 
 async function loadAirspace(urls) {
     const files = await Promise.all(urls.map(url => fetch(url).then(response => response.json())));

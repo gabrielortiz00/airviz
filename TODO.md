@@ -14,3 +14,8 @@
 - Verify the two inferred Class D rules (Imperial Beach/Brown Field, Waldron/Corpus Christi NAS) against JO 7400.11.
 - Class B shelf checks using TAC VFR checkpoints.
 - Check the Actions tab on Oct 29 for the first automatic update.
+
+- Security: upgrade maplibre-gl to 6.4.1 or later to fix GHSA-jrc7-96c5-q579 (XSS in its HTML sanitizer, only reachable through map attribution text). Blocked until deck.gl supports MapLibre v6 terrain; 9.4.0 still reads map.transform. Check new deck.gl releases.
+- Security: run npm audit fix for the dev tools (vite, postcss, nanoid, source-map-js). Only affects the local dev server, not visitors.
+- Security: add a vercel.json with security headers (no framing, referrer policy, content security policy).
+- Security: turn on two-factor auth for GitHub, Vercel and Namecheap, and check the domain lock on gabrielortiz.io. Revoke the old Mapbox token if it's still active.

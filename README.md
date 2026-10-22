@@ -22,9 +22,11 @@ AirViz renders that same airspace in 3D:
 
 ## Tech Stack
 
-- [Mapbox GL JS](https://docs.mapbox.com/mapbox-gl-js/) — base map
-- [deck.gl](https://deck.gl/) — 3D geometry rendering layer
-- Vanilla JavaScript
+- [MapLibre GL JS](https://maplibre.org/): open source base map with 3D terrain
+- [deck.gl](https://deck.gl/): 3D airspace volumes, drawn inside the MapLibre map
+- [OpenFreeMap](https://openfreemap.org/): basemap tiles from OpenStreetMap data
+- [AWS Terrain Tiles](https://registry.opendata.aws/terrain-tiles/): elevation data for terrain
+- Vanilla JavaScript with [Vite](https://vite.dev/)
 
 ## Data
 

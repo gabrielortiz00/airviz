@@ -1,7 +1,7 @@
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { MapboxOverlay } from '@deck.gl/mapbox';
-import { SolidPolygonLayer } from '@deck.gl/layers';
+import { PathLayer, SolidPolygonLayer } from '@deck.gl/layers';
 import './style.css';
 import { prepareAirports, searchAirports } from './search.js';
 
@@ -9,6 +9,12 @@ const FEET_TO_METERS = 0.3048;
 
 // Built from the FAA NASR Class_Airspace shapefile by scripts/build-airspace.sh.
 const AIRSPACE_URL = '/data/airspace.geojson';
+
+// Built by scripts/build-mode-c-veil.js: 30 NM around the airports in 14 CFR 91 Appendix D.
+const VEIL_URL = '/data/mode-c-veil.geojson';
+
+// Sectional charts draw the veil as a thin magenta line.
+const VEIL_COLOR = [176, 48, 110];
 
 // Colors loosely follow sectional chart conventions: B blue, C magenta.
 // D is dashed blue on a sectional; cyan keeps it distinct from B in 3D.
@@ -202,17 +208,83 @@ map.on('load', async () => {
         }
     });
 
-    allVolumes = toVolumes(await (await fetch(AIRSPACE_URL)).json());
+    const [airspace, veil] = await Promise.all([
+        fetch(AIRSPACE_URL).then(response => response.json()),
+        fetch(VEIL_URL).then(response => response.json())
+    ]);
+
+    // The veil's edge on the ground. MapLibre drapes lines over the terrain.
+    map.addSource('mode-c-veil', { type: 'geojson', data: veil });
+    map.addLayer({
+        id: 'mode-c-veil-ground',
+        type: 'line',
+        source: 'mode-c-veil',
+        paint: {
+            'line-color': `rgb(${VEIL_COLOR.join(', ')})`,
+            'line-width': 1.5,
+            'line-opacity': 0.8
+        }
+    });
+
+    allVolumes = toVolumes(airspace);
+    veilLines = toVeilLines(veil);
     drawAirspace();
 
 });
 
 let allVolumes = [];
+let veilLines = { tops: [], posts: [] };
 
 // Classes checked in the panel's Airspace section.
 const visibleClasses = new Set(['B', 'C', 'D']);
+let showVeil = true;
+
+// The veil as a wireframe instead of a solid volume, so a 60 NM wide cylinder doesn't tint
+// a whole metro area: its edge at the 10,000 MSL top, and vertical lines every few miles
+// from sea level (hidden below the ground by the terrain) up to the top.
+const VEIL_POST_SPACING_M = 3 * 1852;
+
+function toVeilLines(geojson) {
+    const tops = [];
+    const posts = [];
+
+    for (const feature of geojson.features) {
+        const top = feature.properties.UPPER_VAL * FEET_TO_METERS;
+        const ring = feature.geometry.coordinates[0];
+        tops.push(ring.map(([lon, lat]) => [lon, lat, top]));
+
+        let sinceLastPost = VEIL_POST_SPACING_M;
+        for (let i = 1; i < ring.length; i++) {
+            const [lon1, lat1] = ring[i - 1];
+            const [lon2, lat2] = ring[i];
+            const dx = (lon2 - lon1) * Math.cos(lat1 * Math.PI / 180) * 111320;
+            const dy = (lat2 - lat1) * 111320;
+            sinceLastPost += Math.hypot(dx, dy);
+            if (sinceLastPost >= VEIL_POST_SPACING_M) {
+                posts.push([[lon2, lat2, 0], [lon2, lat2, top]]);
+                sinceLastPost = 0;
+            }
+        }
+    }
+
+    return { tops, posts };
+}
 
 function drawAirspace() {
+    // The ground line only exists once the map has loaded.
+    if (map.getLayer('mode-c-veil-ground')) {
+        map.setLayoutProperty('mode-c-veil-ground', 'visibility', showVeil ? 'visible' : 'none');
+    }
+
+    const veilLine = {
+        getPath: path => path,
+        getColor: [...VEIL_COLOR, 150],
+        getWidth: 1,
+        widthUnits: 'pixels',
+        visible: showVeil,
+        parameters: { depthWriteEnabled: false }
+    };
+
     const volumeShape = {
         data: allVolumes.filter(v => visibleClasses.has(v.airspaceClass)),
         extruded: true,
@@ -238,13 +310,20 @@ function drawAirspace() {
                 pickable: true,
                 autoHighlight: true,
                 highlightColor: [255, 255, 255, 90]
-            })
+            }),
+            new PathLayer({ ...veilLine, id: 'mode-c-veil-top', data: veilLines.tops }),
+            new PathLayer({ ...veilLine, id: 'mode-c-veil-posts', data: veilLines.posts })
         ]
     });
 }
 
+document.getElementById('toggle-veil').addEventListener('change', event => {
+    showVeil = event.target.checked;
+    drawAirspace();
+});
+
 // Class checkboxes. The swatches use the same colors as the map, at full opacity.
-for (const input of document.querySelectorAll('.class-toggle input')) {
+for (const input of document.querySelectorAll('.class-toggle input[data-class]')) {
     const airspaceClass = input.dataset.class;
     const [r, g, b] = CLASS_COLORS[airspaceClass];
     input.parentElement.querySelector('.swatch').style.background = `rgb(${r}, ${g}, ${b})`;

@@ -184,6 +184,12 @@ body {
   border-radius: 3px;
 }
 
+/* The veil is drawn as lines, so its swatch is an outline. */
+.swatch-veil {
+  box-sizing: border-box;
+  border: 2px solid rgb(176, 48, 110);
+}
+
 .panel-footer {
   padding-top: 10px;
   border-top: 1px solid var(--divider);

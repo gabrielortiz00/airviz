@@ -96,6 +96,76 @@ body {
   color: var(--text-muted);
 }
 
+/* Airport search. */
+.search input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  background: #fff;
+  font: inherit;
+  color: var(--text);
+}
+
+.search input:focus {
+  outline: 2px solid var(--link);
+  outline-offset: -1px;
+}
+
+.search-results {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.search-results li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.search-results li[aria-selected='true'],
+.search-results li:hover {
+  background: rgba(20, 80, 170, 0.1);
+}
+
+.search-results .result-id {
+  min-width: 34px;
+  font-weight: 600;
+}
+
+.search-results .result-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.search-results .result-place {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.search-status:not(:empty) {
+  margin-top: 6px;
+  color: var(--text-muted);
+}
+
+/* Read by screen readers, but not shown. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
 .class-toggle {
   display: flex;
   align-items: center;

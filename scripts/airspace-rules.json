@@ -4,7 +4,8 @@
         {
             "airspace": "NUQ",
             "excludes": "PAO",
-            "source": "Mountain View (Moffett) Class D: '...excluding the portion within the Palo Alto of Santa Clara County Airport, CA, Class D airspace area.' Federal Register, 1995-07-17, doc 95-17404: https://www.govinfo.gov/content/pkg/FR-1995-07-17/html/95-17404.htm"
+            "source": "Mountain View (Moffett) Class D, surface up to but not including 2,500 MSL: '...excluding the portion within the Palo Alto of Santa Clara County Airport, CA, Class D airspace area during the specific dates and times it is effective.' Federal Register, 1998-05-05, doc 98-11856: https://www.govinfo.gov/content/pkg/FR-1998-05-05/html/98-11856.htm",
+            "note": "Only Palo Alto's Class D volume is excluded, so Moffett's Class D continues above Palo Alto's 1,500/2,000 ft ceilings up to 2,500. When the Palo Alto tower is closed its Class D isn't in effect, so Moffett's covers that area from the surface."
         }
     ]
 }

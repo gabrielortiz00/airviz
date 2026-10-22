@@ -17,13 +17,45 @@ const CLASS_COLORS = {
     D: [0, 165, 200, 70]
 };
 
+// Where the map starts, and where the home button goes back to.
+const START_VIEW = {
+    center: [-122.213473, 37.604249], // SF Bay Area
+    zoom: 9,
+    bearing: 0,
+    pitch: 0
+};
+
 const map = new maplibregl.Map({
     container: 'app', // container ID from index.html
-    center: [-122.213473, 37.604249], // starting position
-    zoom: 9, // starting zoom
+    ...START_VIEW,
     maxPitch: 85, // allow looking at airspace shelves from the side
     style: 'https://tiles.openfreemap.org/styles/positron'
 });
+
+// Button that flies back to the starting view, styled like MapLibre's own controls.
+class HomeControl {
+    onAdd(map) {
+        this.container = document.createElement('div');
+        this.container.className = 'maplibregl-ctrl maplibregl-ctrl-group';
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.title = 'Back to the starting view';
+        button.setAttribute('aria-label', 'Back to the starting view');
+        button.innerHTML = '<svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true" style="display:block;margin:auto">'
+            + '<path d="M4 9.5L10 4l6 5.5M6 8v7.5h3v-4h2v4h3V8" fill="none" stroke="#333" stroke-width="1.6" stroke-linejoin="round"/></svg>';
+        button.addEventListener('click', () => map.flyTo(START_VIEW));
+        this.container.append(button);
+        return this.container;
+    }
+
+    onRemove() {
+        this.container.remove();
+    }
+}
+
+// Zoom buttons, and a compass that shows north and tilt. Clicking the compass resets both.
+map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
+map.addControl(new HomeControl(), 'top-right');
 
 // Altitudes as a pilot reads them, e.g. "SFC to 2,000 MSL" or "1,500 MSL up to but not including 2,100 MSL".
 function formatAltitudes(volume) {
@@ -169,10 +201,19 @@ map.on('load', async () => {
         }
     });
 
-    const volumes = toVolumes(await (await fetch(AIRSPACE_URL)).json());
+    allVolumes = toVolumes(await (await fetch(AIRSPACE_URL)).json());
+    drawAirspace();
 
+});
+
+let allVolumes = [];
+
+// Classes checked in the panel's Airspace section.
+const visibleClasses = new Set(['B', 'C', 'D']);
+
+function drawAirspace() {
     const volumeShape = {
-        data: volumes,
+        data: allVolumes.filter(v => visibleClasses.has(v.airspaceClass)),
         extruded: true,
         getPolygon: v => v.rings,
         getElevation: v => v.ceiling - v.floor
@@ -199,5 +240,48 @@ map.on('load', async () => {
             })
         ]
     });
+}
 
+// Class checkboxes. The swatches use the same colors as the map, at full opacity.
+for (const input of document.querySelectorAll('.class-toggle input')) {
+    const airspaceClass = input.dataset.class;
+    const [r, g, b] = CLASS_COLORS[airspaceClass];
+    input.parentElement.querySelector('.swatch').style.background = `rgb(${r}, ${g}, ${b})`;
+
+    input.addEventListener('change', () => {
+        if (input.checked) {
+            visibleClasses.add(airspaceClass);
+        } else {
+            visibleClasses.delete(airspaceClass);
+        }
+        drawAirspace();
+    });
+}
+
+// Collapse the panel down to its header, and remember the choice for next time.
+const panel = document.getElementById('panel');
+const panelToggle = document.getElementById('panel-toggle');
+
+function setPanelCollapsed(collapsed) {
+    panel.classList.toggle('collapsed', collapsed);
+    panelToggle.setAttribute('aria-expanded', String(!collapsed));
+    const label = collapsed ? 'Show panel' : 'Hide panel';
+    panelToggle.setAttribute('aria-label', label);
+    panelToggle.title = label;
+}
+
+panelToggle.addEventListener('click', () => {
+    const collapsed = !panel.classList.contains('collapsed');
+    setPanelCollapsed(collapsed);
+    try {
+        localStorage.setItem('panelCollapsed', String(collapsed));
+    } catch {
+        // Storage can be blocked (private browsing); the panel still works.
+    }
 });
+
+try {
+    setPanelCollapsed(localStorage.getItem('panelCollapsed') === 'true');
+} catch {
+    // Same as above.
+}

@@ -22,17 +22,34 @@
   <body>
     <div id="app"></div>
 
-    <aside class="notice">
-      <h1>AirViz</h1>
-      <p><span class="warning">Not for navigation.</span> Always use current official FAA charts and a preflight briefing.</p>
-      <p class="cycle" id="cycle">Loading FAA data cycle...</p>
-      <p class="report"><a id="report-link" href="https://github.com/gabrielortiz00/airviz/issues/new?template=airspace-error.yml" target="_blank" rel="noopener">Report an issue</a> (free GitHub account needed)</p>
-      <details>
-        <summary>About</summary>
-        <p>3D view of Class B, C and D airspace across the US, including Alaska, Hawaii and the territories. Hover a volume to see its name and altitudes. Drag to pan, right-drag or Ctrl-drag to tilt and rotate.</p>
-        <p>Airspace from the FAA <a href="https://www.faa.gov/air_traffic/flight_info/aeronav/aero_data/NASR_Subscription/" target="_blank" rel="noopener">NASR</a> 28-day subscription. Where airspace areas overlap, ownership follows the FAA legal descriptions. Not shown yet: Class E, special use airspace, TFRs and part-time airspace hours.</p>
-        <p>Basemap from <a href="https://openfreemap.org/" target="_blank" rel="noopener">OpenFreeMap</a> and OpenStreetMap contributors. Terrain from <a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noopener">AWS Terrain Tiles</a> (Mapzen). Source code on <a href="https://github.com/gabrielortiz00/airviz" target="_blank" rel="noopener">GitHub</a>.</p>
-      </details>
+    <aside class="panel" id="panel">
+      <header class="panel-header">
+        <h1>AirViz</h1>
+        <button type="button" id="panel-toggle" class="panel-toggle" aria-expanded="true" aria-controls="panel-body" aria-label="Hide panel" title="Hide panel">
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M4 10l4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </header>
+
+      <div class="panel-body" id="panel-body">
+        <section class="panel-section">
+          <h2>Airspace</h2>
+          <label class="class-toggle"><input type="checkbox" data-class="B" checked /><span class="swatch" data-class="B"></span>Class B</label>
+          <label class="class-toggle"><input type="checkbox" data-class="C" checked /><span class="swatch" data-class="C"></span>Class C</label>
+          <label class="class-toggle"><input type="checkbox" data-class="D" checked /><span class="swatch" data-class="D"></span>Class D</label>
+        </section>
+
+        <footer class="panel-footer">
+          <p><span class="warning">Not for navigation.</span> Always use current official FAA charts and a preflight briefing.</p>
+          <p class="cycle" id="cycle">Loading FAA data cycle...</p>
+          <p class="report"><a id="report-link" href="https://github.com/gabrielortiz00/airviz/issues/new?template=airspace-error.yml" target="_blank" rel="noopener">Report an issue</a> (free GitHub account needed)</p>
+          <details>
+            <summary>About</summary>
+            <p>3D view of Class B, C and D airspace across the US, including Alaska, Hawaii and the territories. Hover a volume to see its name and altitudes. Drag to pan, right-drag or Ctrl-drag to tilt and rotate.</p>
+            <p>Airspace from the FAA <a href="https://www.faa.gov/air_traffic/flight_info/aeronav/aero_data/NASR_Subscription/" target="_blank" rel="noopener">NASR</a> 28-day subscription. Where airspace areas overlap, ownership follows the FAA legal descriptions. Not shown yet: Class E, special use airspace, TFRs and part-time airspace hours.</p>
+            <p>Basemap from <a href="https://openfreemap.org/" target="_blank" rel="noopener">OpenFreeMap</a> and OpenStreetMap contributors. Terrain from <a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noopener">AWS Terrain Tiles</a> (Mapzen). Source code on <a href="https://github.com/gabrielortiz00/airviz" target="_blank" rel="noopener">GitHub</a>.</p>
+          </details>
+        </footer>
+      </div>
     </aside>
 
     <script type="module" src="/src/main.js"></script>

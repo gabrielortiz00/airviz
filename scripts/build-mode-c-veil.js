@@ -79,14 +79,7 @@ const features = merged.map(polygon => {
     const airports = centers.filter(center => insideRing(center.point, polygon[0])).map(center => center.id);
     return {
         type: 'Feature',
-        properties: {
-            NAME: `Mode C veil (${airports.join(', ')})`,
-            AIRPORTS: airports,
-            LOWER_VAL: 0,
-            LOWER_CODE: 'SFC',
-            UPPER_VAL: veil.ceilingMsl,
-            UPPER_CODE: 'MSL'
-        },
+        properties: { AIRPORTS: airports },
         geometry: { type: 'Polygon', coordinates: polygon }
     };
 });

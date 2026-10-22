@@ -1,7 +1,6 @@
 {
     "about": "Mode C veil: 14 CFR 91.215(b)(2) requires a transponder with altitude reporting (and 91.225(d)(2) ADS-B Out) 'in all airspace within 30 nautical miles of an airport listed in appendix D, section 1 of this part from the surface upward to 10,000 feet MSL'. This is that list. 'regulation' is the entry exactly as Appendix D, Section 1 words it, so scripts/check-mode-c-veil.js can tell when the rule changes. 'airport' is the NASR identifier; some names in the rule are out of date (McCarran is now Harry Reid, Honolulu International is now Daniel K. Inouye).",
     "radiusNm": 30,
-    "ceilingMsl": 10000,
     "locations": [
         { "airport": "ATL", "regulation": "Atlanta, GA (Hartsfield-Jackson Atlanta International Airport)" },
         { "airport": "BWI", "regulation": "Baltimore, MD (Baltimore/Washington International Thurgood Marshall Airport)" },

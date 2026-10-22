@@ -15,7 +15,7 @@ const AIRSPACE_URL = '/data/airspace.geojson';
 const VEIL_URL = '/data/mode-c-veil.geojson';
 
 // Sectional charts draw the veil as a thin magenta line.
-const VEIL_COLOR = [176, 48, 110];
+const VEIL_COLOR = 'rgb(176, 48, 110)';
 
 // Colors loosely follow sectional chart conventions: B blue, C magenta.
 // D is dashed blue on a sectional; cyan keeps it distinct from B in 3D.
@@ -221,7 +221,7 @@ map.on('load', async () => {
         type: 'line',
         source: 'mode-c-veil',
         paint: {
-            'line-color': `rgb(${VEIL_COLOR.join(', ')})`,
+            'line-color': VEIL_COLOR,
             'line-width': 1.5,
             'line-opacity': 0.8
         }

@@ -18,10 +18,11 @@ REGION_BBOX="${REGION_BBOX:-}"
 SIMPLIFY_DEGREES="0.00002"
 
 # Only the fields we use. UPPER_DESC says whether the ceiling is included (TI) or not (TNI).
-# EXCLUSION marks carve-outs, which resolve-overlaps.js subtracts from their airspace.
-FIELDS="IDENT,NAME,CLASS,LOWER_VAL,LOWER_CODE,UPPER_VAL,UPPER_CODE,UPPER_DESC,EXCLUSION"
+FIELDS="IDENT,NAME,CLASS,LOWER_VAL,LOWER_CODE,UPPER_VAL,UPPER_CODE,UPPER_DESC"
 
-# Class B, C and D only.
+# Class B, C and D only. Features marked EXCLUSION are kept and drawn like any other: the
+# FAA cuts an excluded area (like San Diego's VFR corridor) out of the main shapes at every
+# altitude, and these features put the airspace back above and below it.
 WHERE="CLASS IN ('B','C','D')"
 
 

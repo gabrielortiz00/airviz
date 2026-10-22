@@ -149,9 +149,7 @@ const volumes = input.features.map((feature, index) => {
         lowerCode: props.LOWER_CODE,
         upperCode: props.UPPER_CODE,
         upperDesc: props.UPPER_DESC,
-        lowerDesc: null,
-        // A carve-out from this airport's airspace (e.g. parts of San Diego Class B).
-        isExclusion: props.EXCLUSION === '1'
+        lowerDesc: null
     };
 });
 
@@ -197,17 +195,6 @@ for (let i = 0; i < volumes.length; i++) {
         const a = volumes[i];
         const b = volumes[j];
         if (!bandsOverlap(a, b) || !bboxesTouch(a.bbox, b.bbox)) {
-            continue;
-        }
-
-        // A carve-out removes space only from its own airport's airspace of the same class.
-        if (a.isExclusion || b.isExclusion) {
-            const sameAirspace = a.ident === b.ident && a.airspaceClass === b.airspaceClass;
-            if (sameAirspace && a.isExclusion && !b.isExclusion) {
-                winners[j].push(a);
-            } else if (sameAirspace && b.isExclusion && !a.isExclusion) {
-                winners[i].push(b);
-            }
             continue;
         }
 
@@ -284,10 +271,6 @@ function cut(piece, winner) {
 const features = [];
 
 for (const volume of volumes) {
-    if (volume.isExclusion) {
-        continue; // carve-outs are subtracted, never drawn
-    }
-
     let pieces = [volume];
     for (const winner of winners[volume.index]) {
         pieces = pieces.flatMap(piece => cut(piece, winner));
@@ -321,5 +304,4 @@ for (const volume of volumes) {
 fs.writeFileSync(outputPath, JSON.stringify({ type: 'FeatureCollection', features: features }));
 
 const cutCount = winners.filter(list => list.length > 0).length;
-const exclusionCount = volumes.filter(v => v.isExclusion).length;
-console.log(`Overlaps: cut ${cutCount} of ${volumes.length} volumes (${exclusionCount} carve-outs) into ${features.length} pieces.`);
+console.log(`Overlaps: cut ${cutCount} of ${volumes.length} volumes into ${features.length} pieces.`);

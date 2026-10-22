@@ -218,10 +218,46 @@
             "source": "Boca Raton Class D around Boca Raton Airport (Federal Register doc 00-21129)"
         },
         {
-            "name": "San Diego Class B carve-out is empty",
+            "name": "San Diego VFR corridor area, below the corridor: Class B",
             "point": [-117.173182870963, 32.7424027775], "altitude": 1650,
-            "expect": { "notIdent": "SAN" },
-            "source": "FAA NASR exclusion feature for San Diego Class B, surface to 3,300 MSL. Point is inside the carve-out."
+            "expect": { "ident": "SAN", "class": "B" },
+            "source": "San Diego Class B Area L excludes only the VFR corridor 'from 3,301 feet MSL to, but not including 4,700 feet MSL' (Federal Register doc 99-2135). Point is inside the corridor's footprint. Reported in issue #1."
+        },
+        {
+            "name": "San Diego VFR corridor area, top of the Class B below it",
+            "point": [-117.173182870963, 32.7424027775], "altitude": 3300,
+            "expect": { "ident": "SAN", "class": "B" },
+            "source": "The corridor starts at 3,301 MSL (Federal Register doc 99-2135)"
+        },
+        {
+            "name": "Inside the San Diego VFR corridor: no Class B",
+            "point": [-117.173182870963, 32.7424027775], "altitude": 4000,
+            "expect": { "none": true },
+            "source": "VFR corridor, 3,301 up to but not including 4,700 MSL, is excluded from the Class B (Federal Register doc 99-2135)"
+        },
+        {
+            "name": "San Diego VFR corridor area, above the corridor: Class B",
+            "point": [-117.173182870963, 32.7424027775], "altitude": 4700,
+            "expect": { "ident": "SAN", "class": "B" },
+            "source": "The corridor ends below 4,700 MSL, where Class B resumes (Federal Register doc 99-2135)"
+        },
+        {
+            "name": "San Diego spot from issue #1",
+            "point": [-117.1383, 32.7196], "altitude": 1000,
+            "expect": { "ident": "SAN", "class": "B" },
+            "source": "Reported in issue #1 (location from the report link). Surface Class B over San Diego Bay."
+        },
+        {
+            "name": "King Salmon partial-altitude area, above 600: Class D",
+            "point": [-156.517791212391, 58.621417429], "altitude": 1000,
+            "expect": { "ident": "AKN", "class": "D" },
+            "source": "FAA NASR: King Salmon Class D feature for 600 to 2,600 MSL over an area excluded from the main Class D below that"
+        },
+        {
+            "name": "King Salmon partial-altitude area, below 600: no Class D",
+            "point": [-156.517791212391, 58.621417429], "altitude": 300,
+            "expect": { "notIdent": "AKN" },
+            "source": "FAA NASR: the main King Salmon Class D shape leaves this area out, and the 600 to 2,600 MSL feature only starts at 600"
         }
     ]
 }

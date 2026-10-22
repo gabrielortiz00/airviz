@@ -10,10 +10,9 @@ const FEET_TO_METERS = 0.3048;
 // Built from the FAA NASR Class_Airspace shapefile by scripts/build-airspace.sh.
 const AIRSPACE_URL = '/data/airspace.geojson';
 
-// Built by scripts/build-mode-c-veil.js: 30 NM around the airports in 14 CFR 91 Appendix D,
-// and a thin band along each area's edge that's raised into the veil's wall.
+// Built by scripts/build-mode-c-veil.js: 30 NM around the airports in 14 CFR 91 Appendix D.
+// Drawn as a line on the ground, like the sectional.
 const VEIL_URL = '/data/mode-c-veil.geojson';
-const VEIL_WALL_URL = '/data/mode-c-veil-wall.geojson';
 
 // Sectional charts draw the veil as a thin magenta line.
 const VEIL_COLOR = [176, 48, 110];
@@ -210,14 +209,12 @@ map.on('load', async () => {
         }
     });
 
-    const [airspace, veil, veilWall] = await Promise.all([
+    const [airspace, veil] = await Promise.all([
         fetch(AIRSPACE_URL).then(response => response.json()),
-        fetch(VEIL_URL).then(response => response.json()),
-        fetch(VEIL_WALL_URL).then(response => response.json())
+        fetch(VEIL_URL).then(response => response.json())
     ]);
 
-    // The veil's edge on the ground, so it still shows when looking straight down, where the
-    // wall is edge-on. MapLibre drapes lines over the terrain.
+    // The veil's edge on the ground. MapLibre drapes lines over the terrain.
     map.addSource('mode-c-veil', { type: 'geojson', data: veil });
     map.addLayer({
         id: 'mode-c-veil-ground',
@@ -229,26 +226,20 @@ map.on('load', async () => {
             'line-opacity': 0.8
         }
     });
+    setVeilVisible(showVeil);
 
     allVolumes = toVolumes(airspace);
-    veilWalls = veilWall.features;
     drawAirspace();
 
 });
 
 let allVolumes = [];
-let veilWalls = [];
 
 // Classes checked in the panel's Airspace section.
 const visibleClasses = new Set(['B', 'C', 'D']);
 let showVeil = true;
 
 function drawAirspace() {
-    // The ground line only exists once the map has loaded.
-    if (map.getLayer('mode-c-veil-ground')) {
-        map.setLayoutProperty('mode-c-veil-ground', 'visibility', showVeil ? 'visible' : 'none');
-    }
-
     const volumeShape = {
         data: allVolumes.filter(v => visibleClasses.has(v.airspaceClass)),
         extruded: true,
@@ -274,27 +265,21 @@ function drawAirspace() {
                 pickable: true,
                 autoHighlight: true,
                 highlightColor: [255, 255, 255, 90]
-            }),
-            // The veil's wall: the thin edge band raised from sea level (the part below the
-            // ground is hidden by the terrain) to 10,000 MSL. Only its sides show, so it reads
-            // as a see-through wall with no lid over the metro area.
-            new SolidPolygonLayer({
-                id: 'mode-c-veil-wall',
-                data: veilWalls,
-                extruded: true,
-                getPolygon: feature => feature.geometry.coordinates,
-                getElevation: feature => feature.properties.UPPER_VAL * FEET_TO_METERS,
-                getFillColor: [...VEIL_COLOR, 45],
-                visible: showVeil,
-                parameters: { depthWriteEnabled: false }
             })
         ]
     });
 }
 
+function setVeilVisible(visible) {
+    showVeil = visible;
+    // The ground line only exists once the map has loaded; the load handler applies it then.
+    if (map.getLayer('mode-c-veil-ground')) {
+        map.setLayoutProperty('mode-c-veil-ground', 'visibility', visible ? 'visible' : 'none');
+    }
+}
+
 document.getElementById('toggle-veil').addEventListener('change', event => {
-    showVeil = event.target.checked;
-    drawAirspace();
+    setVeilVisible(event.target.checked);
 });
 
 // Class checkboxes. The swatches use the same colors as the map, at full opacity.

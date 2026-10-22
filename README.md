@@ -11,10 +11,10 @@ Pilots, especially students, learn airspace from sectional charts, flat, 2D maps
 AirViz puts that structure in 3D, in the browser, on top of a real interactive map.
 
 Example: A cut-out of the San Francisco Sectional Area Chart as of 04/14/2026:
-![San Francisco Sectional Area Chart](/src/assets/SFO_Sectional_Cutout.png)
+![San Francisco Sectional Area Chart](docs/images/sfo-sectional-cutout.jpg)
 
 AirViz renders that same airspace in 3D:
-![AirViz early product screenshot](/src/assets/Early_Product_Screenshot.png)
+![AirViz showing San Francisco Class B airspace in 3D over the Bay Area](public/og-image.jpg)
 
 ## What it does
 

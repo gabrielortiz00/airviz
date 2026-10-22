@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Build public/data/airspace.geojson from the FAA NASR Class_Airspace shapefile.
+# Build public/data/airspace.geojson from the FAA NASR Class_Airspace shapefile, and
+# public/data/airports.json (for search) from the NASR airport list.
 #
 # Usage: scripts/build-airspace.sh [path/to/28DaySubscription_Effective_YYYY-MM-DD]
 # With no argument, uses the newest 28DaySubscription_Effective_* folder in the repo root.
@@ -46,6 +47,23 @@ if [[ ! -f "$SHAPEFILE" ]]; then
     exit 1
 fi
 
+TMP_DIR="$(mktemp -d)"
+trap 'rm -rf "$TMP_DIR"' EXIT
+
+# The airport list for search: CSV_Data/APT_BASE.csv from fetch-nasr.sh, or inside the
+# CSV zip that comes with the full subscription download.
+APT_CSV="$NASR_DIR/CSV_Data/APT_BASE.csv"
+if [[ ! -f "$APT_CSV" ]]; then
+    CSV_ZIP="$(ls "$NASR_DIR"/CSV_Data/*_CSV.zip 2>/dev/null | head -n 1 || true)"
+    if [[ -n "$CSV_ZIP" ]] && unzip -q -o "$CSV_ZIP" APT_BASE.csv -d "$TMP_DIR"; then
+        APT_CSV="$TMP_DIR/APT_BASE.csv"
+    else
+        echo "Airport list not found: $APT_CSV" >&2
+        echo "Download the cycle with scripts/fetch-nasr.sh, which gets both files." >&2
+        exit 1
+    fi
+fi
+
 # The effective date comes from the folder name, e.g. 28DaySubscription_Effective_2026-10-29.
 CYCLE_DATE="$(basename "$NASR_DIR" | sed -n 's/^28DaySubscription_Effective_\([0-9-]*\)$/\1/p')"
 if [[ -z "$CYCLE_DATE" ]]; then
@@ -72,8 +90,6 @@ mkdir -p "$OUT_DIR"
 OUT_FILE="$OUT_DIR/airspace.geojson"
 
 # ogr2ogr writes the raw export here, then resolve-overlaps.js writes the final file.
-TMP_DIR="$(mktemp -d)"
-trap 'rm -rf "$TMP_DIR"' EXIT
 RAW_FILE="$TMP_DIR/airspace-raw.geojson"
 
 echo "Cycle:  $CYCLE_DATE"
@@ -107,6 +123,9 @@ node "$REPO_ROOT/scripts/resolve-overlaps.js" "$RAW_FILE" "$OUT_FILE"
 
 # Test known points from charts and legal descriptions (scripts/airspace-checks.json).
 node "$REPO_ROOT/scripts/check-airspace.js" "$OUT_FILE"
+
+# The public-use airport list for the search box.
+node "$REPO_ROOT/scripts/build-airports.js" "$APT_CSV" "$OUT_DIR/airports.json"
 
 # Record which cycle the data is from, so the site can show it.
 printf '{\n    "effective": "%s"\n}\n' "$CYCLE_DATE" > "$OUT_DIR/cycle.json"

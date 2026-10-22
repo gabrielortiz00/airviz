@@ -28,8 +28,27 @@ const map = new maplibregl.Map({
     style: 'https://tiles.openfreemap.org/styles/positron'
 });
 
+// Altitudes as a pilot reads them, e.g. "SFC to 2,000 MSL" or "1,500 MSL up to but not including 2,100 MSL".
+function formatAltitudes(volume) {
+    const floor = volume.lowerCode === 'SFC' && Number(volume.lowerVal) === 0
+        ? 'SFC'
+        : `${Number(volume.lowerVal).toLocaleString()} ${volume.lowerCode}`;
+    const ceiling = `${Number(volume.upperVal).toLocaleString()} ${volume.upperCode}`;
+
+    if (volume.upperDesc === 'TNI') {
+        return `${floor} up to but not including ${ceiling}`;
+    }
+    return `${floor} to ${ceiling}`;
+}
+
 // deck.gl draws the airspace inside the MapLibre map, so it shares the camera and terrain.
-const deckOverlay = new MapboxOverlay({ interleaved: true, layers: [] });
+const deckOverlay = new MapboxOverlay({
+    interleaved: true,
+    layers: [],
+    getTooltip: ({ object }) => object && {
+        text: `${object.name}\n${formatAltitudes(object)}`
+    }
+});
 map.addControl(deckOverlay);
 
 
@@ -68,6 +87,12 @@ function toVolumes(geojson) {
                 airspaceClass: props.CLASS,
                 floor: floor,
                 ceiling: ceiling,
+                // Original FAA values (feet) for the tooltip.
+                lowerVal: props.LOWER_VAL,
+                lowerCode: props.LOWER_CODE,
+                upperVal: props.UPPER_VAL,
+                upperCode: props.UPPER_CODE,
+                upperDesc: props.UPPER_DESC,
                 rings: rings.map(ring => ring.map(([lon, lat]) => [lon, lat, floor]))
             });
         }
@@ -112,17 +137,31 @@ map.on('load', async () => {
 
     const volumes = await loadAirspace(AIRSPACE_FILES);
 
+    const volumeShape = {
+        data: volumes,
+        extruded: true,
+        getPolygon: v => v.rings,
+        getElevation: v => v.ceiling - v.floor
+    };
+
     deckOverlay.setProps({
         layers: [
+            // What you see. Still hidden by terrain, but translucent faces don't hide each other.
             new SolidPolygonLayer({
+                ...volumeShape,
                 id: 'airspace',
-                data: volumes,
-                extruded: true,
-                getPolygon: v => v.rings,
-                getElevation: v => v.ceiling - v.floor,
                 getFillColor: v => CLASS_COLORS[v.airspaceClass],
-                // Still hidden by terrain, but translucent faces don't hide each other.
                 parameters: { depthWriteEnabled: false }
+            }),
+            // An invisible copy for hovering. It writes depth, so the volume nearest the
+            // camera is picked instead of whichever was drawn last. It also draws the highlight.
+            new SolidPolygonLayer({
+                ...volumeShape,
+                id: 'airspace-picking',
+                getFillColor: [0, 0, 0, 0],
+                pickable: true,
+                autoHighlight: true,
+                highlightColor: [255, 255, 255, 90]
             })
         ]
     });

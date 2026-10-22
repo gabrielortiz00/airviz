@@ -3,6 +3,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { MapboxOverlay } from '@deck.gl/mapbox';
 import { SolidPolygonLayer } from '@deck.gl/layers';
 import './style.css';
+import { prepareAirports, searchAirports } from './search.js';
 
 const FEET_TO_METERS = 0.3048;
 
@@ -285,3 +286,133 @@ try {
 } catch {
     // Same as above.
 }
+
+// Airport search. The airport list (about 130 KB) only downloads once someone uses the box.
+const AIRPORTS_URL = '/data/airports.json';
+
+// Zoomed in and tilted, so the airport's airspace shows as 3D volumes right away.
+const AIRPORT_VIEW = { zoom: 11, pitch: 55, bearing: 0 };
+
+const searchInput = document.getElementById('airport-search');
+const searchResults = document.getElementById('search-results');
+const searchStatus = document.getElementById('search-status');
+
+let airportsPromise = null;
+let shownResults = [];
+let activeIndex = -1;
+
+function loadAirports() {
+    if (!airportsPromise) {
+        airportsPromise = fetch(AIRPORTS_URL)
+            .then(response => response.json())
+            .then(prepareAirports)
+            .catch(error => {
+                airportsPromise = null; // try again next time
+                throw error;
+            });
+    }
+    return airportsPromise;
+}
+
+function showResults(results) {
+    shownResults = results;
+    activeIndex = results.length > 0 ? 0 : -1;
+    searchResults.replaceChildren(...results.map((airport, index) => {
+        const item = document.createElement('li');
+        item.id = `search-result-${index}`;
+        item.setAttribute('role', 'option');
+
+        const id = document.createElement('span');
+        id.className = 'result-id';
+        id.textContent = airport.id;
+        const name = document.createElement('span');
+        name.className = 'result-name';
+        name.textContent = airport.name;
+        const place = document.createElement('span');
+        place.className = 'result-place';
+        place.textContent = airport.state ? `${airport.city}, ${airport.state}` : airport.city;
+        item.append(id, name, place);
+
+        // mousedown, not click, so picking a result doesn't blur the input first.
+        item.addEventListener('mousedown', event => {
+            event.preventDefault();
+            selectAirport(airport);
+        });
+        return item;
+    }));
+
+    searchResults.hidden = results.length === 0;
+    searchInput.setAttribute('aria-expanded', String(results.length > 0));
+    highlightActive();
+}
+
+function highlightActive() {
+    searchResults.querySelectorAll('li').forEach((item, index) => {
+        item.setAttribute('aria-selected', String(index === activeIndex));
+    });
+    if (activeIndex >= 0) {
+        searchInput.setAttribute('aria-activedescendant', `search-result-${activeIndex}`);
+    } else {
+        searchInput.removeAttribute('aria-activedescendant');
+    }
+}
+
+function closeResults() {
+    showResults([]);
+    searchStatus.textContent = '';
+}
+
+function selectAirport(airport) {
+    map.flyTo({ center: [airport.lon, airport.lat], ...AIRPORT_VIEW });
+    searchInput.value = `${airport.id} ${airport.name}`;
+    closeResults();
+    searchInput.blur(); // also closes the on-screen keyboard on phones
+}
+
+async function updateSearch() {
+    const query = searchInput.value;
+    let airports;
+    try {
+        airports = await loadAirports();
+    } catch {
+        searchStatus.textContent = "Couldn't load the airport list. Try again.";
+        return;
+    }
+    if (searchInput.value !== query) {
+        return; // the user kept typing; a newer search will run
+    }
+
+    const results = searchAirports(airports, query);
+    showResults(results);
+    searchStatus.textContent = results.length === 0 && query.trim().length >= 2
+        ? 'No public-use airports match.'
+        : '';
+}
+
+searchInput.addEventListener('focus', () => {
+    loadAirports().catch(() => {});
+    if (searchInput.value) {
+        updateSearch();
+    }
+});
+searchInput.addEventListener('input', updateSearch);
+searchInput.addEventListener('blur', closeResults);
+
+searchInput.addEventListener('keydown', event => {
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        if (shownResults.length === 0) {
+            return;
+        }
+        event.preventDefault();
+        const step = event.key === 'ArrowDown' ? 1 : -1;
+        activeIndex = (activeIndex + step + shownResults.length) % shownResults.length;
+        highlightActive();
+    } else if (event.key === 'Enter') {
+        event.preventDefault();
+        if (activeIndex >= 0) {
+            selectAirport(shownResults[activeIndex]);
+        }
+    } else if (event.key === 'Escape') {
+        closeResults();
+    }
+});

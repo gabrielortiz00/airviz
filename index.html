@@ -31,6 +31,13 @@
       </header>
 
       <div class="panel-body" id="panel-body">
+        <section class="panel-section search">
+          <label for="airport-search" class="visually-hidden">Search airports</label>
+          <input id="airport-search" type="search" placeholder="Airport, e.g. KPAO or Palo Alto" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="search-results" />
+          <ul id="search-results" class="search-results" role="listbox" aria-label="Matching airports" hidden></ul>
+          <p id="search-status" class="search-status" role="status"></p>
+        </section>
+
         <section class="panel-section">
           <h2>Airspace</h2>
           <label class="class-toggle"><input type="checkbox" data-class="B" checked /><span class="swatch" data-class="B"></span>Class B</label>

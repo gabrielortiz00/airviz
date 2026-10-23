@@ -2,6 +2,8 @@
 
 - Sectional / TAC overlay toggle, so the basemap can switch to the actual FAA charts. The FAA publishes them as GeoTIFFs on a 56-day cycle, so they'd need to be turned into map tiles first.
 
+- Sectional airport symbols instead of the plain airport codes: the chart symbol (circle with four ticks) next to the code, blue for towered and magenta for non-towered. Needs a real tower flag in airports.json (build-airports.js already reads TWR_TYPE_CODE; importance is only a rough stand-in). Check contrast where a blue symbol sits inside a Class B or a magenta one inside a Class C. A quick prototype (not kept) drew the icon on a canvas and added it with map.addImage, then used it as icon-image in the same symbol layers as the codes.
+
 - Column view: click a spot, see every layer above it.
 - Part-time airspace (towers that close at night). Hours are in NASR CLS_ARSP.csv.
 - Altitude query: position + altitude, get the airspace you're in.

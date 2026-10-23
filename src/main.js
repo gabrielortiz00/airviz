@@ -228,46 +228,58 @@ map.on('load', async () => {
     });
     setVeilVisible(showVeil);
 
-    allVolumes = toVolumes(airspace);
+    for (const volume of toVolumes(airspace)) {
+        volumesByClass[volume.airspaceClass].push(volume);
+    }
     drawAirspace();
 
 });
 
-let allVolumes = [];
+// One list per class, filled once on load. The arrays never change after that, so deck.gl
+// builds each class's geometry only once and the checkboxes just show or hide it.
+const volumesByClass = { B: [], C: [], D: [] };
 
 // Classes checked in the panel's Airspace section.
 const visibleClasses = new Set(['B', 'C', 'D']);
 let showVeil = true;
 
+// Two layers per class. Classes draw in this order, so where volumes overlap on screen,
+// D tints over C and C over B. All visible layers go before all picking layers: the
+// picking layers write depth, and anything drawn after them is hidden behind them.
 function drawAirspace() {
-    const volumeShape = {
-        data: allVolumes.filter(v => visibleClasses.has(v.airspaceClass)),
-        extruded: true,
-        getPolygon: v => v.rings,
-        getElevation: v => v.ceiling - v.floor
-    };
+    const visibleLayers = [];
+    const pickingLayers = [];
 
-    deckOverlay.setProps({
-        layers: [
-            // What you see. Still hidden by terrain, but translucent faces don't hide each other.
-            new SolidPolygonLayer({
-                ...volumeShape,
-                id: 'airspace',
-                getFillColor: v => CLASS_COLORS[v.airspaceClass],
-                parameters: { depthWriteEnabled: false }
-            }),
-            // An invisible copy for hovering. It writes depth, so the volume nearest the
-            // camera is picked instead of whichever was drawn last. It also draws the highlight.
-            new SolidPolygonLayer({
-                ...volumeShape,
-                id: 'airspace-picking',
-                getFillColor: [0, 0, 0, 0],
-                pickable: true,
-                autoHighlight: true,
-                highlightColor: [255, 255, 255, 90]
-            })
-        ]
-    });
+    for (const airspaceClass of ['B', 'C', 'D']) {
+        const volumeShape = {
+            data: volumesByClass[airspaceClass],
+            // Hidden layers aren't drawn or picked at all.
+            visible: visibleClasses.has(airspaceClass),
+            extruded: true,
+            getPolygon: v => v.rings,
+            getElevation: v => v.ceiling - v.floor
+        };
+
+        // What you see. Still hidden by terrain, but translucent faces don't hide each other.
+        visibleLayers.push(new SolidPolygonLayer({
+            ...volumeShape,
+            id: `airspace-${airspaceClass}`,
+            getFillColor: CLASS_COLORS[airspaceClass],
+            parameters: { depthWriteEnabled: false }
+        }));
+        // An invisible copy for hovering. It writes depth, so the volume nearest the
+        // camera is picked instead of whichever was drawn last. It also draws the highlight.
+        pickingLayers.push(new SolidPolygonLayer({
+            ...volumeShape,
+            id: `airspace-picking-${airspaceClass}`,
+            getFillColor: [0, 0, 0, 0],
+            pickable: true,
+            autoHighlight: true,
+            highlightColor: [255, 255, 255, 90]
+        }));
+    }
+
+    deckOverlay.setProps({ layers: [...visibleLayers, ...pickingLayers] });
 }
 
 function setVeilVisible(visible) {

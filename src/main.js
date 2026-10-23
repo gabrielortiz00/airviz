@@ -244,9 +244,11 @@ const visibleClasses = new Set(['B', 'C', 'D']);
 let showVeil = true;
 
 // Two layers per class. Classes draw in this order, so where volumes overlap on screen,
-// D tints over C and C over B.
+// D tints over C and C over B. All visible layers go before all picking layers: the
+// picking layers write depth, and anything drawn after them is hidden behind them.
 function drawAirspace() {
-    const layers = [];
+    const visibleLayers = [];
+    const pickingLayers = [];
 
     for (const airspaceClass of ['B', 'C', 'D']) {
         const volumeShape = {
@@ -258,28 +260,26 @@ function drawAirspace() {
             getElevation: v => v.ceiling - v.floor
         };
 
-        layers.push(
-            // What you see. Still hidden by terrain, but translucent faces don't hide each other.
-            new SolidPolygonLayer({
-                ...volumeShape,
-                id: `airspace-${airspaceClass}`,
-                getFillColor: CLASS_COLORS[airspaceClass],
-                parameters: { depthWriteEnabled: false }
-            }),
-            // An invisible copy for hovering. It writes depth, so the volume nearest the
-            // camera is picked instead of whichever was drawn last. It also draws the highlight.
-            new SolidPolygonLayer({
-                ...volumeShape,
-                id: `airspace-picking-${airspaceClass}`,
-                getFillColor: [0, 0, 0, 0],
-                pickable: true,
-                autoHighlight: true,
-                highlightColor: [255, 255, 255, 90]
-            })
-        );
+        // What you see. Still hidden by terrain, but translucent faces don't hide each other.
+        visibleLayers.push(new SolidPolygonLayer({
+            ...volumeShape,
+            id: `airspace-${airspaceClass}`,
+            getFillColor: CLASS_COLORS[airspaceClass],
+            parameters: { depthWriteEnabled: false }
+        }));
+        // An invisible copy for hovering. It writes depth, so the volume nearest the
+        // camera is picked instead of whichever was drawn last. It also draws the highlight.
+        pickingLayers.push(new SolidPolygonLayer({
+            ...volumeShape,
+            id: `airspace-picking-${airspaceClass}`,
+            getFillColor: [0, 0, 0, 0],
+            pickable: true,
+            autoHighlight: true,
+            highlightColor: [255, 255, 255, 90]
+        }));
     }
 
-    deckOverlay.setProps({ layers });
+    deckOverlay.setProps({ layers: [...visibleLayers, ...pickingLayers] });
 }
 
 function setVeilVisible(visible) {

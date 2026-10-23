@@ -36,7 +36,9 @@ const START_VIEW = {
 const map = new maplibregl.Map({
     container: 'app', // container ID from index.html
     ...START_VIEW,
-    maxPitch: 85, // allow looking at airspace shelves from the side
+    // Allow looking at airspace shelves from the side. Above about 84.3° MapLibre's terrain
+    // camera lifts the camera after every move (issue #8).
+    maxPitch: 84,
     style: 'https://tiles.openfreemap.org/styles/positron'
 });
 

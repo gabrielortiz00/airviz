@@ -4,6 +4,7 @@ import { MapboxOverlay } from '@deck.gl/mapbox';
 import { SolidPolygonLayer } from '@deck.gl/layers';
 import './style.css';
 import { prepareAirports, searchAirports } from './search.js';
+import { FIRST_AIRPORT_LABEL_LAYER, addAirportLabels, setAirports } from './airport-labels.js';
 
 const FEET_TO_METERS = 0.3048;
 
@@ -211,6 +212,9 @@ map.on('load', async () => {
         }
     });
 
+    // Airport labels stay on top: the veil and airspace layers are inserted below them.
+    addAirportLabels(map);
+
     const [airspace, veil] = await Promise.all([
         fetch(AIRSPACE_URL).then(response => response.json()),
         fetch(VEIL_URL).then(response => response.json())
@@ -227,13 +231,19 @@ map.on('load', async () => {
             'line-width': 1.5,
             'line-opacity': 0.8
         }
-    });
+    }, FIRST_AIRPORT_LABEL_LAYER);
     setVeilVisible(showVeil);
 
     for (const volume of toVolumes(airspace)) {
         volumesByClass[volume.airspaceClass].push(volume);
     }
     drawAirspace();
+
+    try {
+        setAirports(map, await loadAirports());
+    } catch {
+        // The map still works without airport labels.
+    }
 
 });
 
@@ -257,6 +267,7 @@ function drawAirspace() {
             data: volumesByClass[airspaceClass],
             // Hidden layers aren't drawn or picked at all.
             visible: visibleClasses.has(airspaceClass),
+            beforeId: FIRST_AIRPORT_LABEL_LAYER,
             extruded: true,
             getPolygon: v => v.rings,
             getElevation: v => v.ceiling - v.floor
@@ -340,7 +351,8 @@ try {
     // Same as above.
 }
 
-// Airport search. The airport list (about 130 KB) only downloads once someone uses the box.
+// Airport search. The airport list (about 130 KB compressed) also feeds the airport labels,
+// so it downloads once the map has loaded.
 const AIRPORTS_URL = '/data/airports.json';
 
 // Zoomed in and tilted, so the airport's airspace shows as 3D volumes right away.

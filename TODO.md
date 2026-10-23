@@ -11,7 +11,6 @@
 
 - Tilting on phones is hard to find (issue #6). It works with two fingers side by side, level, dragged up or down together. Add that to the About text, and a "3D" button in the corner controls that tilts to about 60° and back.
 - Drag controls feel inverted on the rotation axis. Figure out which direction and flip it.
-- Check tapping volumes on a phone.
 - Verify the two inferred Class D rules (Imperial Beach/Brown Field, Waldron/Corpus Christi NAS) against JO 7400.11.
 - Class B shelf checks using TAC VFR checkpoints.
 - Check the Actions tab on Oct 29 for the first automatic update.

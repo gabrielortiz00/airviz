@@ -1,5 +1,12 @@
 # AirViz
 
+**A 3D map of US airspace for pilots, updated every FAA cycle.**
+
+[![FAA data cycle](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fairviz.gabrielortiz.io%2Fdata%2Fcycle.json&query=%24.effective&label=FAA%20data%20cycle&color=blue)](https://airviz.gabrielortiz.io)
+[![Airspace update](https://img.shields.io/github/actions/workflow/status/gabrielortiz00/airviz/update-airspace.yml?label=airspace%20update)](https://github.com/gabrielortiz00/airviz/actions/workflows/update-airspace.yml)
+[![Last commit](https://img.shields.io/github/last-commit/gabrielortiz00/airviz?color=blue)](https://github.com/gabrielortiz00/airviz/commits/main)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
 Interactive 3D visualization of the US National Airspace System, built to give pilots a better spatial understanding of the airspace they're flying in.
 
 **Live:** [airviz.gabrielortiz.io](https://airviz.gabrielortiz.io)
@@ -47,6 +54,12 @@ The same build also makes two smaller files. `scripts/build-airports.js` turns t
 In the browser, MapLibre draws the base map and the terrain, and deck.gl draws the airspace volumes inside the same map so they line up with the ground.
 
 ## Tech Stack
+
+![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=black)
+![MapLibre](https://img.shields.io/badge/MapLibre-396CB2?logo=maplibre&logoColor=white)
+![deck.gl](https://img.shields.io/badge/deck.gl-1D2430)
+![Vite](https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white)
+![GDAL](https://img.shields.io/badge/GDAL-5CAE58?logo=gdal&logoColor=white)
 
 - [MapLibre GL JS](https://maplibre.org/): base map and 3D terrain
 - [deck.gl](https://deck.gl/): 3D airspace volumes

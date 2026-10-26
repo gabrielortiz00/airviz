@@ -1,3 +1,4 @@
+import { inject } from '@vercel/analytics';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { MapboxOverlay } from '@deck.gl/mapbox';
@@ -5,6 +6,9 @@ import { SolidPolygonLayer } from '@deck.gl/layers';
 import './style.css';
 import { prepareAirports, searchAirports } from './search.js';
 import { FIRST_AIRPORT_LABEL_LAYER, addAirportLabels, setAirports } from './airport-labels.js';
+
+// Anonymous visit counts with Vercel Web Analytics (no cookies).
+inject();
 
 const FEET_TO_METERS = 0.3048;
 

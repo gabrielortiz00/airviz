@@ -37,11 +37,29 @@ AirViz renders that same airspace in 3D:
 - Show the Mode C veil: the 30 NM ring around the busiest airports where you need a transponder with altitude reporting and ADS-B Out.
 - Tells you which FAA data cycle you're looking at, with a warning when it's out of date.
 
-**This is a learning tool. Not for navigation.**
+> [!WARNING]
+> This is a learning tool. Not for navigation.
 
 ## How it works
 
 The airspace data comes from the FAA's [NASR subscription](https://www.faa.gov/air_traffic/flight_info/aeronav/aero_data/NASR_Subscription/), which is updated every 28 days. It's the same source professional aviation apps use. Each cycle includes a shapefile with every Class B, C, D and E area in the country.
+
+```mermaid
+flowchart TD
+    A["GitHub Action, every morning"] --> B{"New NASR cycle?"}
+    B -- No --> Z["Nothing to do"]
+    B -- Yes --> C["Download from the FAA:<br/>airspace shapefile, airport list"]
+    C --> D["Export Class B, C and D<br/>ogr2ogr"]
+    D --> E["Resolve overlaps<br/>resolve-overlaps.js"]
+    E --> F["Check against charts<br/>check-airspace.js"]
+    C --> G["Build airport list<br/>build-airports.js"]
+    C --> I["Build Mode C veil, checked against eCFR<br/>build-mode-c-veil.js"]
+    F --> J["public/data"]
+    G --> J
+    I --> J
+    J --> K["Commit, Vercel deploys the site"]
+    F -- "A check fails" --> L["Open a GitHub issue,<br/>keep the previous cycle"]
+```
 
 `scripts/build-airspace.sh` turns that shapefile into the file the site loads, in three steps:
 

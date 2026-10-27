@@ -44,6 +44,9 @@ const map = new maplibregl.Map({
     // Allow looking at airspace shelves from the side. Above about 84.3° MapLibre's terrain
     // camera lifts the camera after every move (issue #8).
     maxPitch: 84,
+    // Keep the camera in the URL (#zoom/lat/lon/bearing/pitch) so a view can be shared,
+    // and a link with a hash opens at that view instead of START_VIEW.
+    hash: true,
     style: 'https://tiles.openfreemap.org/styles/positron'
 });
 
@@ -173,13 +176,26 @@ async function showCycle() {
 
 showCycle();
 
-// Fill in the GitHub issue form with where the map is looking, the data cycle and the
-// last airspace hovered (field ids match .github/ISSUE_TEMPLATE/airspace-error.yml).
+// Copy the current URL, which holds the camera thanks to the map's hash option.
+const copyLinkButton = document.getElementById('copy-link');
+copyLinkButton.addEventListener('click', async () => {
+    try {
+        await navigator.clipboard.writeText(window.location.href);
+        copyLinkButton.textContent = 'Copied!';
+    } catch {
+        copyLinkButton.textContent = 'Copy failed, use the address bar';
+    }
+    setTimeout(() => { copyLinkButton.textContent = 'Copy link to this view'; }, 1500);
+});
+
+// Fill in the GitHub issue form with where the map is looking (with a link to the exact
+// view), the data cycle and the last airspace hovered (field ids match
+// .github/ISSUE_TEMPLATE/airspace-error.yml).
 document.getElementById('report-link').addEventListener('click', event => {
     const { lng, lat } = map.getCenter();
     const params = new URLSearchParams({
         template: 'airspace-error.yml',
-        location: `${lat.toFixed(4)}, ${lng.toFixed(4)} (zoom ${map.getZoom().toFixed(1)})`,
+        location: `${lat.toFixed(4)}, ${lng.toFixed(4)} (zoom ${map.getZoom().toFixed(1)}) ${window.location.href}`,
         cycle: cycleEffective
     });
     if (lastHovered) {

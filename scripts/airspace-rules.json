@@ -29,10 +29,11 @@
             "note": "The dividing line puts the Arlington side outside Grand Prairie. The overlap in the shapefile is a 0.4 km² sliver along that line."
         },
         {
-            "airspace": "SDM",
-            "excludes": "NRS",
-            "verified": false,
-            "source": "Not found online. Inferred: in every verified case where ceilings differ, the airport with the lower ceiling owns the overlap (Imperial Beach 1,500 vs Brown Field 3,000). Check the Imperial Beach and Brown Field descriptions in FAA Order JO 7400.11."
+            "airspace": "NRS",
+            "excludes": "SDM",
+            "verified": true,
+            "source": "San Diego TAC, note by Imperial Beach NOLF: 'Class D excludes portion east of 117°01'W when BROWN Class D is in effect.'",
+            "note": "The chart divides them along 117°01'W, but Brown Field's edge is about 80 m west of that line, so the thin sliver between them goes to Brown Field here. Same simplification as Grand Prairie and Arlington."
         },
         {
             "airspace": "NGP",

@@ -248,6 +248,12 @@
             "source": "Reported in issue #1 (location from the report link). Surface Class B over San Diego Bay."
         },
         {
+            "name": "Imperial Beach and Brown Field overlap, east of 117°01'W: Brown Field",
+            "point": [-117.012, 32.566], "altitude": 1000,
+            "expect": { "ident": "SDM", "class": "D" },
+            "source": "San Diego TAC, note by Imperial Beach NOLF: 'Class D excludes portion east of 117°01'W when BROWN Class D is in effect.' Point is inside both airports' Class D footprints in the shapefile."
+        },
+        {
             "name": "King Salmon partial-altitude area, above 600: Class D",
             "point": [-156.517791212391, 58.621417429], "altitude": 1000,
             "expect": { "ident": "AKN", "class": "D" },

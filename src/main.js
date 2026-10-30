@@ -71,9 +71,66 @@ class HomeControl {
     }
 }
 
+// "?" button that opens a card explaining the map controls (the card is in index.html).
+// The card lives outside the map so it can sit above the side panel on phones.
+class HelpControl {
+    onAdd() {
+        this.container = document.createElement('div');
+        this.container.className = 'maplibregl-ctrl maplibregl-ctrl-group';
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'help-button';
+        button.title = 'How to use the map';
+        button.setAttribute('aria-label', 'How to use the map');
+        button.setAttribute('aria-controls', 'help-card');
+        button.setAttribute('aria-expanded', 'false');
+        button.textContent = '?';
+        this.container.append(button);
+
+        const card = document.getElementById('help-card');
+        // Show only the instructions for this device: touch or mouse.
+        const input = window.matchMedia('(pointer: coarse)').matches ? 'touch' : 'mouse';
+        for (const list of card.querySelectorAll('[data-input]')) {
+            list.hidden = list.dataset.input !== input;
+        }
+
+        const setOpen = open => {
+            card.hidden = !open;
+            button.setAttribute('aria-expanded', String(open));
+            if (open) {
+                // Line the card up with the button, just to its left.
+                const rect = button.getBoundingClientRect();
+                card.style.top = `${rect.top}px`;
+                card.style.right = `${window.innerWidth - rect.left + 8}px`;
+            }
+        };
+        button.addEventListener('click', () => setOpen(card.hidden));
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape' && !card.hidden) {
+                setOpen(false);
+                button.focus();
+            }
+        });
+        // Any click outside the card or the button closes it, including starting to drag the map.
+        document.addEventListener('pointerdown', event => {
+            if (!card.hidden && !card.contains(event.target) && !button.contains(event.target)) {
+                setOpen(false);
+            }
+        });
+        window.addEventListener('resize', () => setOpen(false));
+
+        return this.container;
+    }
+
+    onRemove() {
+        this.container.remove();
+    }
+}
+
 // Zoom buttons, and a compass that shows north and tilt. Clicking the compass resets both.
 map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
 map.addControl(new HomeControl(), 'top-right');
+map.addControl(new HelpControl(), 'top-right');
 
 // Altitudes as a pilot reads them, e.g. "SFC to 2,000 MSL" or "1,500 MSL up to but not including 2,100 MSL".
 function formatAltitudes(volume) {

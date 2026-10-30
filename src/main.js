@@ -44,6 +44,12 @@ const map = new maplibregl.Map({
     // Allow looking at airspace shelves from the side. Above about 84.3° MapLibre's terrain
     // camera lifts the camera after every move (issue #8).
     maxPitch: 84,
+    // Right-drag or Ctrl-drag sideways always turns the same way, like Google Earth. MapLibre's
+    // default flips the direction depending on whether the cursor is above or below the center.
+    aroundCenter: false,
+    // Half MapLibre's default of 0.8° per pixel, which spins too fast in that mode. Not a
+    // documented option, but MapLibre reads it from the map options.
+    rotateDegreesPerPixelMoved: 0.4,
     // Keep the camera in the URL (#zoom/lat/lon/bearing/pitch) so a view can be shared,
     // and a link with a hash opens at that view instead of START_VIEW.
     hash: true,

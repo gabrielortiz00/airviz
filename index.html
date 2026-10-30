@@ -53,13 +53,35 @@
           <p class="report"><a id="report-link" href="https://github.com/gabrielortiz00/airviz/issues/new?template=airspace-error.yml" target="_blank" rel="noopener">Report an issue</a> (free GitHub account needed)</p>
           <details>
             <summary>About</summary>
-            <p>3D view of Class B, C and D airspace across the US, including Alaska, Hawaii and the territories. Hover a volume to see its name and altitudes. Drag to pan, right-drag or Ctrl-drag to tilt and rotate.</p>
+            <p>3D view of Class B, C and D airspace across the US, including Alaska, Hawaii and the territories. Hover a volume to see its name and altitudes. For the map controls, use the ? button at the top right.</p>
             <p>Airspace from the FAA <a href="https://www.faa.gov/air_traffic/flight_info/aeronav/aero_data/NASR_Subscription/" target="_blank" rel="noopener">NASR</a> 28-day subscription. Where airspace areas overlap, ownership follows the FAA legal descriptions. Not shown yet: Class E, special use airspace, TFRs and part-time airspace hours.</p>
             <p>Basemap from <a href="https://openfreemap.org/" target="_blank" rel="noopener">OpenFreeMap</a> and OpenStreetMap contributors. Terrain from <a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noopener">AWS Terrain Tiles</a> (Mapzen). Source code on <a href="https://github.com/gabrielortiz00/airviz" target="_blank" rel="noopener">GitHub</a>.</p>
           </details>
         </footer>
       </div>
     </aside>
+
+    <section class="help-card" id="help-card" role="dialog" aria-label="How to use the map" hidden>
+      <h2>Map controls</h2>
+      <dl data-input="mouse">
+        <dt>Move</dt><dd>Drag the map</dd>
+        <dt>Zoom</dt><dd>Scroll, or the + and − buttons</dd>
+        <dt>Tilt and rotate</dt><dd>Right-drag, or hold Ctrl and drag</dd>
+        <dt>Reset north and tilt</dt><dd>Click the compass</dd>
+        <dt>Back to the start</dt><dd>Click the home button</dd>
+        <dt>Altitudes</dt><dd>Hover over an airspace volume</dd>
+        <dt>Find an airport</dt><dd>Use the search box in the panel</dd>
+      </dl>
+      <dl data-input="touch">
+        <dt>Move</dt><dd>Drag with one finger</dd>
+        <dt>Zoom</dt><dd>Pinch</dd>
+        <dt>Rotate</dt><dd>Twist with two fingers</dd>
+        <dt>Tilt</dt><dd>Put two fingers side by side, level, and drag up or down together</dd>
+        <dt>Reset north and tilt</dt><dd>Tap the compass</dd>
+        <dt>Back to the start</dt><dd>Tap the home button</dd>
+        <dt>Find an airport</dt><dd>Use the search box in the panel</dd>
+      </dl>
+    </section>
 
     <script type="module" src="/src/main.js"></script>
   </body>
